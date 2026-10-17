@@ -1,6 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, vi } from "vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
+
+// CI runners are slower than dev machines; give async UI assertions more headroom.
+configure({ asyncUtilTimeout: 5000 });
 
 afterEach(() => {
   cleanup();
