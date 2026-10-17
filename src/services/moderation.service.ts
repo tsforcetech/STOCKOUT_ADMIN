@@ -1,0 +1,69 @@
+import { http } from "@/lib/api/client";
+import type {
+  Guid,
+  ListingModerationDetailResponse,
+  ListingModerationQueueResponse,
+  ListingPublicationHistoryResponse,
+  ModerationDecisionRequest,
+  ModerationDecisionResponse,
+  ModerationQueueQuery,
+  PublicationEligibilityResponse,
+  PublishListingResponse,
+  RepublishListingResponse,
+  RollbackListingRequest,
+  RollbackListingResponse,
+  RowVersion,
+  SuspendListingRequest,
+  SuspendListingResponse,
+} from "@/api/types/catalog-moderation";
+
+/**
+ * catalog-listing admin moderation + publication (/api/v1/admin/catalog/listings/*).
+ * NO response envelope: every success body is the bare DTO (or bare array).
+ * Every write takes the LISTING rowVersion (`candidateVersion.listingRowVersion`) and returns a new one.
+ * Contract: docs/contracts/catalog-moderation-inspections.md §3–4
+ */
+const seg = encodeURIComponent;
+const base = "/api/v1/admin/catalog/listings";
+const versionPath = (listingId: Guid, versionId: Guid) => `${base}/${seg(listingId)}/versions/${seg(versionId)}`;
+
+export const moderationService = {
+  /** Server-paginated; only current draft versions with status UNDER_REVIEW, oldest first. */
+  queue: (query: ModerationQueueQuery, signal?: AbortSignal) =>
+    http.get<ListingModerationQueueResponse>(`${base}/moderation/queue`, {
+      signal,
+      query: {
+        categoryId: query.categoryId,
+        sellerId: query.sellerId,
+        submittedFromUtc: query.submittedFromUtc,
+        submittedToUtc: query.submittedToUtc,
+        requiresInspectionOnly: query.requiresInspectionOnly,
+        page: query.page,
+        pageSize: query.pageSize,
+      },
+    }),
+
+  /** Works for any version of the listing; the only source of the listing rowVersion. */
+  detail: (listingId: Guid, versionId: Guid, signal?: AbortSignal) =>
+    http.get<ListingModerationDetailResponse>(`${versionPath(listingId, versionId)}/moderation`, { signal }),
+
+  decide: (listingId: Guid, versionId: Guid, body: ModerationDecisionRequest) =>
+    http.post<ModerationDecisionResponse>(`${versionPath(listingId, versionId)}/moderation/decide`, body),
+
+  eligibility: (listingId: Guid, versionId: Guid, signal?: AbortSignal) =>
+    http.get<PublicationEligibilityResponse>(`${versionPath(listingId, versionId)}/publication-eligibility`, { signal }),
+
+  publish: (listingId: Guid, versionId: Guid, expectedRowVersion: RowVersion) =>
+    http.post<PublishListingResponse>(`${versionPath(listingId, versionId)}/publish`, { expectedRowVersion }),
+
+  suspend: (listingId: Guid, body: SuspendListingRequest) => http.post<SuspendListingResponse>(`${base}/${seg(listingId)}/suspend`, body),
+
+  republish: (listingId: Guid, expectedRowVersion: RowVersion) =>
+    http.post<RepublishListingResponse>(`${base}/${seg(listingId)}/republish`, { expectedRowVersion }),
+
+  rollback: (listingId: Guid, body: RollbackListingRequest) => http.post<RollbackListingResponse>(`${base}/${seg(listingId)}/rollback`, body),
+
+  /** Bare array, newest first. Unknown listing returns []. */
+  publicationHistory: (listingId: Guid, signal?: AbortSignal) =>
+    http.get<ListingPublicationHistoryResponse>(`${base}/${seg(listingId)}/publication-history`, { signal }),
+};
