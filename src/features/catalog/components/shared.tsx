@@ -155,7 +155,7 @@ export function ToggleActiveDialog({
       title={deactivating ? `Deactivate ${entity}?` : `Reactivate ${entity}?`}
       description={
         deactivating
-          ? `"${target?.name ?? ""}" will be marked inactive and no longer offered for new listings.${deactivateNote ? ` ${deactivateNote}` : ""}`
+          ? `"${target?.name ?? ""}" will be marked inactive.${deactivateNote ? ` ${deactivateNote}` : ""}`
           : `"${target?.name ?? ""}" will be marked active again.`
       }
       confirmLabel={deactivating ? "Deactivate" : "Reactivate"}

@@ -1,13 +1,13 @@
-import * as React from "react";
+import type * as React from "react";
 import { Logo } from "@/components/common/logo";
+import { loginHeroUrl } from "@/assets/brand";
 
 /**
  * Figma "Login" frame (385:2169): left brand panel, right card on white.
  * The left panel's photograph is a Figma raster asset; it is loaded from
- * public/brand/login-hero.jpg when exported, otherwise the panel renders its text treatment only.
+ * src/assets/brand/login-hero.png when exported, otherwise the panel renders its text treatment only.
  */
 export function AuthShell({ children }: { children: React.ReactNode }) {
-  const [heroOk, setHeroOk] = React.useState(true);
   return (
     <div className="flex min-h-dvh bg-surface p-4 sm:p-6">
       <aside className="relative hidden w-[47%] max-w-[760px] shrink-0 overflow-hidden rounded-xl bg-surface-muted lg:flex lg:flex-col" aria-hidden>
@@ -20,7 +20,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
                 <br />
                 Manage the entire marketplace.
               </p>
-              {heroOk && <img src="/brand/login-hero.png" alt="" className="pointer-events-none absolute -bottom-2 -left-4 h-[85%] w-auto object-contain" onError={() => setHeroOk(false)} />}
+              {loginHeroUrl && <img src={loginHeroUrl} alt="" className="pointer-events-none absolute -bottom-2 -left-4 h-[85%] w-auto object-contain" />}
             </div>
             <div className="absolute -bottom-8 right-0 max-w-[260px] rounded-lg bg-[#fac02a] px-4 py-3 text-lg leading-6 text-foreground">
               Manage products, resources, orders, and operations from one place.

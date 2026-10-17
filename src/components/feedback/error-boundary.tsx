@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <Button variant="secondary" className="rounded-full" onClick={() => this.setState({ error: null })}>
               <ArrowClockwiseIcon /> Try again
             </Button>
-            <Button onClick={() => window.location.assign("/")}>Go to dashboard</Button>
+            <Button onClick={() => window.location.assign(import.meta.env.BASE_URL)}>Go to dashboard</Button>
           </div>
         </div>
       </div>

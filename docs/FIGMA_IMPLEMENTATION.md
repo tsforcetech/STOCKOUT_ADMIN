@@ -23,12 +23,12 @@ Unauthorised, Mobile. The "Buyer Screens" section is the buyer storefront, not t
 ## Assets that still need exporting
 
 The Figma asset CDN (`www.figma.com/api/mcp/asset/...`) is blocked by the build environment's network policy,
-so two raster assets could not be downloaded. Export them from Figma and drop them in `public/brand/`:
+so two raster assets could not be downloaded. Export them from Figma and drop them in `src/assets/brand/` (picked up automatically at build time):
 
 | File | Figma node | Used by |
 |---|---|---|
-| `public/brand/stockout-logo.png` | Logo `653:28631` (also "Main Logo" instances) | `components/common/logo.tsx` — falls back to a text wordmark until present |
-| `public/brand/login-hero.png` | Login → Img Container `398:1793` (worker photo, transparent background) | `features/auth/auth-shell.tsx` — panel renders text-only until present |
+| `src/assets/brand/stockout-logo.png` | Logo `653:28631` (also "Main Logo" instances) | `components/common/logo.tsx` — falls back to a text wordmark until present |
+| `src/assets/brand/login-hero.png` | Login → Img Container `398:1793` (worker photo, transparent background) | `features/auth/auth-shell.tsx` — panel renders text-only until present |
 
 ## Deliberate deviations
 

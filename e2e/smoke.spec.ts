@@ -9,6 +9,9 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 const json = (route: Route, body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 
 async function mockSession(page: Page, permissions: string[]) {
+  // Registered first: Playwright gives later routes priority, so specific mocks below win.
+  // Anything not mocked answers 403 so permission-gated widgets degrade visibly.
+  await page.route("**/api/v1/**", (r) => json(r, { error: "FORBIDDEN", message: "Not mocked in smoke test" }, 403));
   await page.route("**/api/v1/auth/login", (r) => json(r, { accessToken: "a.eyJzaWQiOiJzMSJ9.c", refreshToken: "rt", expiresIn: 900, tokenType: "Bearer", mfaRequired: false, mfaChallengeToken: null }));
   await page.route("**/api/v1/auth/token/refresh", (r) => json(r, { accessToken: "a.eyJzaWQiOiJzMSJ9.c", refreshToken: "rt2", expiresIn: 900, tokenType: "Bearer" }));
   await page.route("**/api/v1/identity/me", (r) => json(r, { userId: "u1", email: "admin@stockout.test", emailVerified: true, mobile: "", mobileVerified: false, status: "Active", authTime: "", amr: "pwd", firstName: "Ada", lastName: "Admin", displayName: "Ada Admin" }));
@@ -22,15 +25,14 @@ async function mockSession(page: Page, permissions: string[]) {
       ],
     }),
   );
-  // Anything else the dashboard requests: answer 403 so permission-gated widgets degrade visibly.
-  await page.route("**/api/v1/**", (r) => json(r, { error: "FORBIDDEN", message: "Not mocked in smoke test" }, 403));
 }
 
 async function signIn(page: Page) {
   await page.goto("/login");
-  await page.getByLabel("Email").fill("admin@stockout.test");
-  await page.getByLabel("Password").fill("correct-horse-battery");
+  await page.getByLabel("Email", { exact: true }).fill("admin@stockout.test");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery");
   await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page).not.toHaveURL(/\/login/);
 }
 
 test("unauthenticated deep link redirects to login and back after sign-in", async ({ page }) => {
@@ -38,8 +40,8 @@ test("unauthenticated deep link redirects to login and back after sign-in", asyn
   await page.goto("/sellers");
   await expect(page).toHaveURL(/\/login\?next=%2Fsellers/);
   await expect(page.getByRole("heading", { name: "Welcome to StockOut" })).toBeVisible();
-  await page.getByLabel("Email").fill("admin@stockout.test");
-  await page.getByLabel("Password").fill("correct-horse-battery");
+  await page.getByLabel("Email", { exact: true }).fill("admin@stockout.test");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery");
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(/\/sellers$/);
   await expect(page.getByRole("heading", { name: "Sellers", level: 1 })).toBeVisible();
@@ -81,7 +83,7 @@ test("layout has no horizontal page overflow", async ({ page }) => {
 
 test("no console errors on the login page", async ({ page }) => {
   const errors: string[] = [];
-  page.on("console", (m) => m.type() === "error" && !/brand\/|Failed to load resource/.test(m.text()) && errors.push(m.text()));
+  page.on("console", (m) => m.type() === "error" && !/Failed to load resource/.test(m.text()) && errors.push(m.text()));
   await page.goto("/login");
   await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
   expect(errors).toEqual([]);

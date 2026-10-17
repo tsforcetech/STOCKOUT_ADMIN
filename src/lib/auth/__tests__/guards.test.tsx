@@ -64,3 +64,13 @@ describe("route guards", () => {
     await waitFor(() => expect(sessionStorage.getItem("stockout.admin.rt")).toBeNull());
   });
 });
+
+describe("session restore resilience", () => {
+  it("keeps the refresh token when profile loading fails for a non-auth reason", async () => {
+    sessionStorage.setItem("stockout.admin.rt", "rt-1");
+    mockFetch([...sessionRoutes([]).filter((r) => r.path !== "/api/v1/identity/me"), { method: "GET", path: "/api/v1/identity/me", respond: () => ({ status: 503 }) }]);
+    renderWithApp(routes, "/secret");
+    expect(await screen.findByText("Login screen")).toBeInTheDocument();
+    expect(sessionStorage.getItem("stockout.admin.rt")).toBe("rt-2");
+  });
+});

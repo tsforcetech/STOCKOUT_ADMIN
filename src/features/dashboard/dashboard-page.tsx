@@ -7,7 +7,6 @@ import {
   GavelIcon,
   HourglassIcon,
   ListChecksIcon,
-  ProhibitIcon,
   QuestionIcon,
   SealCheckIcon,
   StorefrontIcon,
@@ -184,7 +183,7 @@ export default function DashboardPage() {
         </SectionCard>
       )}
 
-      <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_1fr]">
+      <div className={canInspections && canSellers ? "mb-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_1fr]" : "mb-6 grid grid-cols-1 gap-6"}>
         {canInspections && (
           <SectionCard>
             <CardHeading eyebrow="Operations" title="Inspection pipeline" action={<ViewAll to="/inspections" />} />
@@ -217,7 +216,6 @@ export default function DashboardPage() {
                   { key: "PENDING", label: "Pending review", value: sellerList.filter((s) => s.verificationStatus === "PENDING").length, icon: <HourglassIcon />, onSelect: () => navigate("/sellers?tab=pending") },
                   { key: "UNVERIFIED", label: "Not submitted", value: sellerList.filter((s) => s.verificationStatus === "UNVERIFIED").length, icon: <QuestionIcon /> },
                   { key: "REJECTED", label: "Rejected", value: sellerList.filter((s) => s.verificationStatus === "REJECTED").length, icon: <XCircleIcon />, onSelect: () => navigate("/sellers?tab=rejected") },
-                  { key: "SUSPENDED", label: "Suspended", value: sellerList.filter((s) => s.status === "SUSPENDED").length, icon: <ProhibitIcon />, onSelect: () => navigate("/sellers?tab=suspended") },
                 ]}
               />
             )}
@@ -225,7 +223,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_1fr]">
+      <div className={canListings || canSellers ? "grid grid-cols-1 gap-6 xl:grid-cols-[1.55fr_1fr]" : "grid grid-cols-1 gap-6"}>
         {(canListings || canSellers) && (
           <SectionCard>
             <CardHeading eyebrow="Work Queue" title="Awaiting Your Approval" action={<ViewAll to="/approvals" />} />

@@ -55,6 +55,8 @@ function Body({
     },
   });
   const { errors } = form.formState;
+  // Always keep the starting parent selectable so an unloaded/filtered list can never silently move the category to the root.
+  const initialParentId = category ? category.parentCategoryId : defaultParentId;
   const slug = useWatch({ control: form.control, name: "slug" });
   const normalized = normalizeCategorySlug(slug);
 
@@ -127,6 +129,9 @@ function Body({
       <FormField label="Parent category" htmlFor="cat-parent" error={errors.parentCategoryId?.message} hint="Only active categories can be parents.">
         <NativeSelect {...form.register("parentCategoryId")} disabled={!categoriesAvailable}>
           <option value="">— Top level (no parent) —</option>
+          {initialParentId && !parentOptions.some(({ category: c }) => c.categoryId === initialParentId) && (
+            <option value={initialParentId}>{category?.parentCategoryName ?? initialParentId}</option>
+          )}
           {parentOptions.map(({ category: c, path }) => (
             <option key={c.categoryId} value={c.categoryId}>
               {path}
@@ -135,7 +140,7 @@ function Body({
           ))}
         </NativeSelect>
       </FormField>
-      {!categoriesAvailable && <Notice tone="warning">The category list could not be loaded, so the parent cannot be changed right now.</Notice>}
+      {!categoriesAvailable && <Notice tone="warning">The category list is not available yet (still loading or failed), so the parent cannot be changed right now.</Notice>}
       <FormField label="Description" htmlFor="cat-description" required error={errors.description?.message} hint={`Required by the API. Up to ${L.descriptionMaxLength} characters.`}>
         <Textarea {...form.register("description")} rows={3} maxLength={L.descriptionMaxLength} />
       </FormField>

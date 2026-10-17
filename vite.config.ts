@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.VITE_DEV_PROXY_TARGET || "https://stockout.flowb.io";
 
   return {
+    // GitHub Pages serves project sites under /<repo>/; VITE_BASE_PATH sets that prefix at build time.
+    base: env.VITE_BASE_PATH || "/",
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: { "@": path.resolve(__dirname, "src") },
@@ -28,7 +30,8 @@ export default defineConfig(({ mode }) => {
             react: ["react", "react-dom", "react-router"],
             query: ["@tanstack/react-query", "@tanstack/react-table"],
             forms: ["react-hook-form", "zod", "@hookform/resolvers"],
-            charts: ["recharts"],
+            ui: ["radix-ui", "sonner", "class-variance-authority", "tailwind-merge", "clsx"],
+            icons: ["@phosphor-icons/react"],
           },
         },
       },

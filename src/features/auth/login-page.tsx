@@ -62,7 +62,12 @@ export default function LoginPage() {
     <AuthShell>
       <AuthCard title="Welcome to StockOut" subtitle="Login to your account">
         <form onSubmit={onSubmit} noValidate className="mx-auto w-full max-w-[440px] space-y-8">
-          {endReason === "expired" && !formError && (
+          {params.get("reason") === "password-changed" && !formError && (
+            <div role="status" className="rounded-md bg-success-soft px-3 py-2 text-sm text-success-soft-foreground">
+              Your password was changed and all sessions were signed out. Sign in with your new password.
+            </div>
+          )}
+          {endReason === "expired" && !formError && params.get("reason") !== "password-changed" && (
             <div role="status" className="rounded-md border border-action-border/40 bg-action-soft px-3 py-2 text-sm text-foreground">
               Your session has expired. Please sign in again.
             </div>

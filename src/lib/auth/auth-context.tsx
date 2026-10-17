@@ -124,8 +124,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         await loadAccess();
         if (!cancelled) setStatus("authenticated");
-      } catch {
-        if (!cancelled) endSessionLocally("expired");
+      } catch (error) {
+        if (cancelled || (isApiError(error) && error.kind === "aborted")) return;
+        // Only an explicit auth rejection ends the session. Network/server failures keep the refresh
+        // token so the next load can restore it (e.g. a reload while this request was in flight).
+        if (isApiError(error) && (error.kind === "unauthorized" || error.kind === "forbidden")) endSessionLocally("expired");
+        else setStatus("anonymous");
       }
     })();
     return () => {
