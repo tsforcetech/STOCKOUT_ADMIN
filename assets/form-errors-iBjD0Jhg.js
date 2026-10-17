@@ -1,0 +1,1 @@
+import{k as f,w as l}from"./index-coTya9yP.js";function c(e,t,i){if(!f(e)||!e.hasFieldErrors)return l(e);const s=[];for(const[n,r]of Object.entries(e.fieldErrors)){const o=i.find(a=>a.toLowerCase()===n.toLowerCase());o?t(o,{type:"server",message:r.join(" ")}):s.push(...r)}return s.length?s.join(" "):null}export{c as a};

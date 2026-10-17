@@ -1,0 +1,1 @@
+import{j as s}from"./query-BNMQUEuZ.js";import{as as r}from"./icons-BUZPA7Xz.js";import{B as a}from"./index-coTya9yP.js";function m({onExport:t,disabled:o}){return s.jsxs(a,{variant:"secondary",size:"lg",className:"h-12 rounded-md px-4 text-base",onClick:t,disabled:o,children:["Export ",s.jsx(r,{className:"size-5"})]})}export{m as E};
