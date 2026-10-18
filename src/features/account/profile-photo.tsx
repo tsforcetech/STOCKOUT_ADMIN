@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/misc";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { getErrorMessage } from "@/lib/api/errors";
-import { FILE_LIMITS, filesService } from "@/services/files.service";
+import { FILE_LIMITS, filesService, isAllowedFileType } from "@/services/files.service";
 import { platformService } from "@/services/platform.service";
 import type { UpdateUserProfileRequest, UserProfileResponse } from "@/api/types/user-organization";
 import { accountKeys } from "./queries";
 
 const LIMIT = FILE_LIMITS.USER_PROFILE_PHOTO;
-const ALLOWED = LIMIT.accept.split(",");
 
 /**
  * Upload → PUT /users/me with the new profileImageAssetId. The PUT carries the saved profile fields
@@ -55,7 +54,7 @@ export function ProfilePhoto({ profile, name, fallbackDisplayName }: { profile: 
   const onFile = (file: File | undefined) => {
     setError(null);
     if (!file) return;
-    if (!ALLOWED.includes(file.type)) return setError("Use a JPEG, PNG or WebP image.");
+    if (!isAllowedFileType(file, "USER_PROFILE_PHOTO")) return setError("Use a JPEG, PNG or WebP image (.jpg, .jpeg, .png or .webp).");
     if (file.size > LIMIT.maxBytes) return setError(`The image must be ${Math.round(LIMIT.maxBytes / 1024 / 1024)} MB or smaller.`);
     if (!(profile?.displayName?.trim() || fallbackDisplayName.trim())) return setError("Save a display name before uploading a photo.");
     upload.mutate(file, {

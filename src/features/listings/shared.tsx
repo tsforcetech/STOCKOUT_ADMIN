@@ -39,9 +39,17 @@ export function ageSince(value: string | null | undefined): string {
 }
 
 /** `<input type="date">` value → UTC ISO bound for the API (start or end of that day). */
+/**
+ * The queue procs compare the upper bound inclusively (`i.CreatedAtUtc <= @DateTo`,
+ * catalog-listing 034_Stage5E_InspectionProcedures.sql:268; `v.UpdatedAtUtc <= @SubmittedToUtc`,
+ * 036_Stage5F_ModerationPublicationProcedures.sql:637), so the end of the day must cover the whole
+ * final second; "T23:59:59Z" silently dropped rows stamped 23:59:59.xxx.
+ */
+export const END_OF_DAY_UTC = "T23:59:59.9999999Z";
+
 export function dateInputToUtc(value: string, bound: "start" | "end"): string | undefined {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
-  return bound === "start" ? `${value}T00:00:00Z` : `${value}T23:59:59Z`;
+  return bound === "start" ? `${value}T00:00:00Z` : `${value}${END_OF_DAY_UTC}`;
 }
 
 export const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

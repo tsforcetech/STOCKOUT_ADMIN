@@ -11,7 +11,7 @@ import { formatBytes } from "@/lib/utils/format";
 import type { InspectionDetailDto, InspectionEvidenceDto, InspectionEvidenceType } from "@/api/types/catalog-moderation";
 import { INSPECTION_EVIDENCE_FILE_PURPOSE } from "@/api/types/catalog-moderation";
 import { inspectionsService } from "@/services/inspections.service";
-import { filesService, FILE_LIMITS } from "@/services/files.service";
+import { filesService, FILE_LIMITS, isAllowedFileType } from "@/services/files.service";
 import { ApiErrorNotice, FileLink, Notice, PanelTitle, PersonText, fmtUtc, isConflict, useUserNames } from "@/features/listings/shared";
 import { inspectionKeys } from "../queries";
 
@@ -147,6 +147,12 @@ function UploadEvidence({ inspection, nextOrder }: { inspection: InspectionDetai
     mutation.reset();
     if (f && f.size > limit.maxBytes) {
       setFileError(`The file is larger than ${formatBytes(limit.maxBytes)}.`);
+      setFile(null);
+      return;
+    }
+    // inventory-media checks both MIME type and extension (FileAssetService.cs:58-60).
+    if (f && !isAllowedFileType(f, INSPECTION_EVIDENCE_FILE_PURPOSE)) {
+      setFileError("Use a PDF, JPG, PNG or WebP file (.pdf, .jpg, .jpeg, .png or .webp).");
       setFile(null);
       return;
     }

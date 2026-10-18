@@ -659,7 +659,7 @@ export interface MarketplaceCurrentActorResponse {
 
 /**
  * All seeded platform permission codes.
- * Source: migrations 007, 016, 017, 019, 020, 021, 022, 023, 024, 026, 027.
+ * Source: migrations 007, 016, 017, 019, 020, 021, 022, 023, 024, 026, 027, 028.
  * Runtime source of truth: GET /api/v1/platform/permissions.
  */
 export const PERMISSIONS = {
@@ -783,6 +783,9 @@ export const PERMISSIONS = {
   NOTIFICATION_TEMPLATES_UPDATE: 'notification-templates.update',
   NOTIFICATION_TEMPLATES_ACTIVATE: 'notification-templates.activate',
   NOTIFICATION_TEMPLATES_DEACTIVATE: 'notification-templates.deactivate',
+
+  // Search administration (028_Stage6F_SearchAdminPermissions.sql) — no admin-console screen uses it yet
+  CATALOG_SEARCH_ADMIN: 'catalog:search:admin',
 } as const;
 
 /** Union of all seeded permission codes. */

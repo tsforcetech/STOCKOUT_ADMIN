@@ -43,7 +43,8 @@ export function ActivityCard() {
       pageSize: Math.min(100, state.asize),
       eventType: state.event || undefined,
       fromUtc: state.from ? `${state.from}T00:00:00Z` : undefined,
-      toUtc: state.to ? `${state.to}T23:59:59Z` : undefined,
+      // Inclusive `OccurredAtUtc <= @ToUtc` (identity-access 016_Add_Account_Activity_Tracking.sql:59): cover the whole last second.
+      toUtc: state.to ? `${state.to}T23:59:59.9999999Z` : undefined,
     }),
     [state.apage, state.asize, state.event, state.from, state.to],
   );
