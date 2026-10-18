@@ -49,7 +49,7 @@ export function RowAction({ label, onClick, children, tone, disabled }: { label:
         className={cn(
           "flex size-7 cursor-pointer items-center justify-center rounded-sm border border-secondary-border bg-surface text-foreground transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-40 [&_svg]:size-4",
           tone === "danger" && "hover:border-danger hover:bg-danger-soft hover:text-danger",
-          tone === "success" && "hover:border-action-border hover:bg-action",
+          tone === "success" && "hover:border-action-border hover:bg-action hover:text-action-foreground",
         )}
       >
         {children}
@@ -78,7 +78,7 @@ export function BulkBar({ count, total, children, onClear }: { count: number; to
 
 export function BulkButton({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="h-8 cursor-pointer rounded-sm border border-action-border bg-action px-3 text-sm text-foreground transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50">
+    <button type="button" onClick={onClick} disabled={disabled} className="h-8 cursor-pointer rounded-sm border border-action-border bg-action px-3 text-sm text-action-foreground transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50">
       {children}
     </button>
   );

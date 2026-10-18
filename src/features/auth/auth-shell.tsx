@@ -22,7 +22,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
               </p>
               {loginHeroUrl && <img src={loginHeroUrl} alt="" className="pointer-events-none absolute -bottom-2 -left-4 h-[85%] w-auto object-contain" />}
             </div>
-            <div className="absolute -bottom-8 right-0 max-w-[260px] rounded-lg bg-[#fac02a] px-4 py-3 text-lg leading-6 text-foreground">
+            <div className="absolute -bottom-8 right-0 max-w-[260px] rounded-lg bg-[#fac02a] px-4 py-3 text-lg leading-6 text-[#1a1a1a]">
               Manage products, resources, orders, and operations from one place.
             </div>
           </div>

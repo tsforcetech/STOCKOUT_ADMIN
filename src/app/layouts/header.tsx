@@ -133,7 +133,7 @@ function CommandSearch() {
                   type="button"
                   onMouseEnter={() => setIndex(i)}
                   onClick={() => go(item.to)}
-                  className={cn("flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm", i === index ? "bg-action text-foreground" : "text-foreground")}
+                  className={cn("flex w-full cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-left text-sm", i === index ? "bg-action text-action-foreground" : "text-action-foreground")}
                 >
                   <item.icon className="size-5" />
                   <span className="flex-1">{item.label}</span>

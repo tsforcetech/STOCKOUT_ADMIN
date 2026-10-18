@@ -248,7 +248,7 @@ export function DataTable<T>({
                     aria-label={`Page ${p}`}
                     className={cn(
                       "flex size-8 cursor-pointer items-center justify-center rounded-sm text-sm transition-colors",
-                      p === page ? "bg-action-border font-medium text-white" : "text-foreground hover:bg-surface-muted",
+                      p === page ? "bg-action font-semibold text-action-foreground" : "text-foreground hover:bg-surface-muted",
                     )}
                   >
                     {p}

@@ -40,7 +40,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-action focus:px-3 focus:py-2 focus:text-foreground">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-action focus:px-3 focus:py-2 focus:text-action-foreground">
         Skip to content
       </a>
       <TopBar onOpenMobileNav={() => setMobileOpen(true)} />
