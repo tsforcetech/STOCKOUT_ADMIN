@@ -137,7 +137,9 @@ export function PanelTitle({ title, description, actions }: { title: React.React
 /** Text input for a GUID filter. Only commits a valid GUID (or empty) to avoid server 400s. */
 export function GuidFilterInput({ value, onChange, label, placeholder }: { value: string; onChange: (value: string) => void; label: string; placeholder: string }) {
   const [draft, setDraft] = React.useState(value);
-  React.useEffect(() => setDraft(value), [value]);
+  React.useEffect(() => {
+    setDraft(value);
+  }, [value]);
   const invalid = draft.trim() !== "" && !isGuid(draft);
   const commit = () => {
     const v = draft.trim();

@@ -48,7 +48,9 @@ export function PermissionMatrix({
   const [confirming, setConfirming] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => setSelected(new Set(initial)), [initial]);
+  React.useEffect(() => {
+    setSelected(new Set(initial));
+  }, [initial]);
 
   const source = readOnly || !catalog ? current : catalog;
   const groups = React.useMemo(() => {

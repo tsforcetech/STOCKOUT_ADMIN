@@ -44,7 +44,9 @@ export function TemplateDetailDialog({ template, onOpenChange }: { template: Not
   const [transition, setTransition] = React.useState<Transition>(null);
   const [formTarget, setFormTarget] = React.useState<TemplateFormTarget | null>(null);
 
-  React.useEffect(() => setSelectedId(null), [code, channel]);
+  React.useEffect(() => {
+    setSelectedId(null);
+  }, [code, channel]);
 
   const list = React.useMemo(() => versions.data ?? [], [versions.data]);
   const selected = list.find((v) => v.versionId === selectedId) ?? list[0] ?? null;

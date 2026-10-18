@@ -75,7 +75,9 @@ function CommandSearch() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  React.useEffect(() => setIndex(0), [query, open]);
+  React.useEffect(() => {
+    setIndex(0);
+  }, [query, open]);
 
   const go = (to: string) => {
     setOpen(false);

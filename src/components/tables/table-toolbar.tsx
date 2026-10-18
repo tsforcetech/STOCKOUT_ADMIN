@@ -8,7 +8,9 @@ export function SearchInput({ value, onChange, placeholder = "Search…", label 
   const [draft, setDraft] = React.useState(value);
   const debounced = useDebouncedValue(draft, 350);
 
-  React.useEffect(() => setDraft(value), [value]);
+  React.useEffect(() => {
+    setDraft(value);
+  }, [value]);
   React.useEffect(() => {
     if (debounced !== value) onChange(debounced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
