@@ -56,10 +56,10 @@ function NavRow({ item, active, collapsed, onNavigate }: { item: NavItem; active
       className={cn(
         base,
         "border",
-        active ? "border-action-border bg-action text-action-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-action-foreground",
+        active ? "border-action-border bg-action text-action-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
       )}
     >
-      <Icon className="size-5 shrink-0 text-foreground" weight={active ? "fill" : "regular"} aria-hidden />
+      <Icon className={cn("size-5 shrink-0", !active && "text-foreground")} weight={active ? "fill" : "regular"} aria-hidden />
       {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
       {!collapsed && active && <CaretRightIcon className="size-4 shrink-0" aria-hidden />}
     </NavLink>
