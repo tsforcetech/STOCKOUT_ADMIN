@@ -60,7 +60,7 @@ export function RoleChips({ roles, value, onChange, label }: { roles: PlatformRo
             onClick={() => onChange(on ? value.filter((c) => c !== role.code) : [...value, role.code])}
             className={cn(
               "h-7 cursor-pointer rounded-sm border px-2 text-xs transition-colors",
-              on ? "border-action-border bg-action text-action-foreground" : "border-secondary-border bg-surface text-action-foreground hover:bg-surface-muted",
+              on ? "border-transparent bg-ink text-ink-foreground" : "border-secondary-border bg-surface text-foreground hover:bg-surface-muted",
             )}
             title={role.description ?? role.name}
           >

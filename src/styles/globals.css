@@ -34,6 +34,10 @@
   --action-foreground: #1a1a1a;
   --action-soft: #fdffbe;
   --action-soft-strong: #fcff9e;
+  /* "Ink" — dark pill with lime label: active nav items and portal call-to-action buttons */
+  --ink: #1a1a1a;
+  --ink-hover: #2d2d27;
+  --ink-foreground: #f8ff2c;
 
   /* Primary CTA — near-black pill with lime label (Figma "Continue") */
   --primary: #1a1a1a;
@@ -78,6 +82,9 @@
   --action-foreground: #1a1a1a;
   --action-soft: #33341a;
   --action-soft-strong: #3f4120;
+  --ink: #2a2b1c;
+  --ink-hover: #34361f;
+  --ink-foreground: #f8ff2c;
 
   --primary: #f8ff2c;
   --primary-hover: #e2e828;
@@ -118,6 +125,9 @@
   --color-action-foreground: var(--action-foreground);
   --color-action-soft: var(--action-soft);
   --color-action-soft-strong: var(--action-soft-strong);
+  --color-ink: var(--ink);
+  --color-ink-hover: var(--ink-hover);
+  --color-ink-foreground: var(--ink-foreground);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);

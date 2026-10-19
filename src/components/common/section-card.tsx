@@ -78,7 +78,7 @@ export function BulkBar({ count, total, children, onClear }: { count: number; to
 
 export function BulkButton({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="h-8 cursor-pointer rounded-sm border border-action-border bg-action px-3 text-sm text-action-foreground transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50">
+    <button type="button" onClick={onClick} disabled={disabled} className="h-8 cursor-pointer rounded-sm border border-transparent bg-ink px-3 text-sm text-ink-foreground transition-colors hover:bg-ink-hover disabled:cursor-not-allowed disabled:opacity-50">
       {children}
     </button>
   );

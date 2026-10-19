@@ -56,7 +56,7 @@ function NavRow({ item, active, collapsed, onNavigate }: { item: NavItem; active
       className={cn(
         base,
         "border",
-        active ? "border-action-border bg-action text-action-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+        active ? "border-transparent bg-ink font-medium text-ink-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
       )}
     >
       <Icon className={cn("size-5 shrink-0", !active && "text-foreground")} weight={active ? "fill" : "regular"} aria-hidden />
