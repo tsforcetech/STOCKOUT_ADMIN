@@ -10,7 +10,7 @@ import { loginHeroUrl } from "@/assets/brand";
 export function AuthShell({ children }: { children: React.ReactNode }) {
   const year = new Date().getFullYear();
   return (
-    <div className="flex min-h-dvh bg-surface p-4 sm:p-6">
+    <div className="flex min-h-dvh bg-surface sm:p-6">
       <aside className="relative hidden w-[47%] max-w-[860px] shrink-0 overflow-hidden rounded-xl bg-[#181817] text-white ring-1 ring-black/5 lg:flex lg:flex-col">
         {loginHeroUrl && <img src={loginHeroUrl} alt="" className="pointer-events-none absolute inset-0 size-full object-cover opacity-30" />}
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(45%_40%_at_82%_28%,rgba(248,255,44,0.16)_0%,rgba(248,255,44,0.05)_45%,transparent_75%)]" />
@@ -38,7 +38,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         </footer>
       </aside>
 
-      <section className="relative flex min-w-0 flex-1 flex-col rounded-xl border border-border bg-surface lg:ml-6">
+      <section className="relative flex min-w-0 flex-1 flex-col bg-surface sm:rounded-xl sm:border sm:border-border lg:ml-6">
         <div className="px-6 pt-8 sm:px-10">
           <Logo className="h-[26px]" />
         </div>

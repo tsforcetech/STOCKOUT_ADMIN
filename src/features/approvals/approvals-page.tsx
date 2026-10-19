@@ -40,7 +40,7 @@ function ViewAll({ to, label, count }: { to: string; label: string; count?: numb
 function PreviewNote({ shown, total, order }: { shown: number; total: number | undefined; order: string }) {
   if (!total) return null;
   return (
-    <p className="mb-3 text-sm text-muted-foreground">
+    <p className="text-sm text-muted-foreground">
       Showing {formatNumber(shown)} of {formatNumber(total)} · {order}
     </p>
   );

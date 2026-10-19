@@ -104,7 +104,7 @@ function GradesContent() {
         actions={
           <>
             <ExportButton onExport={() => exportRows(filtered)} disabled={!filtered.length} />
-            {can(CT.gradesCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create Grade</CreateButton>}
+            {can(CT.gradesCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create grade</CreateButton>}
           </>
         }
       />

@@ -62,7 +62,7 @@ function GradeEditor({ condition, mapped, grades, onDone }: { condition: Conditi
       {grades.length === 0 ? (
         <EmptyState title="No grades defined" description="Create grades on the Grades tab first." />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="relative overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-max text-sm">
             <caption className="sr-only">Grades for {condition.name}</caption>
             <thead className="bg-surface-muted">

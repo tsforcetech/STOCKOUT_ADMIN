@@ -23,7 +23,7 @@ export function Notice({ tone = "info", title, children, className }: { tone?: "
     <div
       role={tone === "warning" ? "alert" : "note"}
       className={cn(
-        "flex gap-3 rounded-md border px-3 py-2.5 text-sm",
+        "flex gap-3 rounded-md border px-3 py-2.5 text-sm [overflow-wrap:anywhere]",
         tone === "warning" ? "border-warning/40 bg-warning-soft text-warning-soft-foreground" : "border-border bg-surface-muted text-foreground",
         className,
       )}

@@ -121,8 +121,11 @@ function DetailContent({ inspectionId }: { inspectionId: string }) {
         </div>
         <div className="min-w-0 space-y-4">
           <EvidencePanel inspection={inspection} editable={evidenceEditable} />
-          <InspectionHistory inspection={inspection} />
         </div>
+      </div>
+      <div className="mt-4">
+        {/* Full width: the status/assignment tables have too many columns for the 420px side rail. */}
+        <InspectionHistory inspection={inspection} />
       </div>
     </>
   );

@@ -162,14 +162,14 @@ function UploadEvidence({ inspection, nextOrder }: { inspection: InspectionDetai
 
   return (
     <form
-      className="space-y-3 rounded-lg border border-dashed border-secondary-border p-4"
+      className="@container space-y-3 rounded-lg border border-dashed border-secondary-border p-4"
       onSubmit={(e) => {
         e.preventDefault();
         if (file) mutation.mutate();
       }}
     >
       <p className="font-heading text-sm font-bold">Add evidence</p>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 @lg:grid-cols-2">
         <FormField label="File" htmlFor="evidence-file" required hint={`PDF, JPG, PNG or WebP up to ${formatBytes(limit.maxBytes)}.`} error={fileError ?? undefined}>
           <Input ref={inputRef} type="file" accept={limit.accept} onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
         </FormField>

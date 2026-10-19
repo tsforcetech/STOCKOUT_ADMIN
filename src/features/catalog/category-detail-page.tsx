@@ -54,19 +54,23 @@ function Detail({ category, all, allLoaded }: { category: AdminCategoryResponse;
 
   const canToggle = category.isActive ? can(CT.categoriesDeactivate) : can(CT.categoriesReactivate);
 
+  const path = categoryPath(category.categoryId, byId);
+
   return (
     <>
+      <div className="mb-2 px-0 sm:px-3">
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/catalog/categories">
+            <ArrowLeftIcon /> All categories
+          </Link>
+        </Button>
+      </div>
       <PageHeader
-        eyebrow="StockOut administration"
+        eyebrow="Category"
         title={category.name}
-        description={categoryPath(category.categoryId, byId) || category.name}
+        description={path && path !== category.name ? path : category.parentCategoryId ? undefined : "Top-level category"}
         actions={
           <>
-            <Button variant="secondary" size="lg" className="h-12 text-base" asChild>
-              <Link to="/catalog/categories">
-                <ArrowLeftIcon /> All categories
-              </Link>
-            </Button>
             {category.isActive && can(CT.categoriesCreate) && (
               <Button variant="secondary" size="lg" className="h-12 text-base" onClick={() => setForm("child")}>
                 Add subcategory <FolderPlusIcon />
@@ -87,7 +91,7 @@ function Detail({ category, all, allLoaded }: { category: AdminCategoryResponse;
             )}
             {can(CT.categoriesUpdate) && (
               <Button variant="action" size="lg" className="h-12 text-base" onClick={() => setForm("edit")}>
-                Edit Category <PencilSimpleIcon />
+                Edit category <PencilSimpleIcon />
               </Button>
             )}
           </>

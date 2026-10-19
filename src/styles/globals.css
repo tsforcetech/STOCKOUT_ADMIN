@@ -91,6 +91,9 @@
   --primary-foreground: #1a1a1a;
   --secondary-border: #4a4a45;
 
+  /* Lighter text tones so success/warning/error copy keeps >= 4.5:1 on the dark surfaces. */
+  --success: #34d399;
+  --warning: #fbbf24;
   --success-soft: #0f2e24;
   --success-soft-foreground: #6ee7b7;
   --warning-soft: #33270f;

@@ -94,7 +94,7 @@ function Editor({ category, data, conditions, onDone }: { category: AdminCategor
           <Label htmlFor="cc-required">Sellers must pick a condition</Label>
         </div>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="relative overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-max text-sm">
           <caption className="sr-only">Direct conditions</caption>
           <thead className="bg-surface-muted">

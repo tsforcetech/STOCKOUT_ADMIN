@@ -141,7 +141,7 @@ function TemplatesContent() {
         actions={
           <>
             <ExportButton onExport={() => exportRows(filtered)} disabled={!filtered.length} />
-            <CreateButton onClick={() => setForm({ id: null })}>Create Template</CreateButton>
+            <CreateButton onClick={() => setForm({ id: null })}>Create template</CreateButton>
           </>
         }
       />

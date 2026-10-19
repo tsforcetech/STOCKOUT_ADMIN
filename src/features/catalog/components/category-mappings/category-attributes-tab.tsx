@@ -82,7 +82,7 @@ function Editor({
           {validation}
         </p>
       )}
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="relative overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-max text-sm">
           <caption className="sr-only">Direct attribute assignments</caption>
           <thead className="bg-surface-muted">

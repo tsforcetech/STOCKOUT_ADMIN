@@ -147,7 +147,7 @@ function AttributesContent() {
         actions={
           <>
             <ExportButton onExport={() => exportRows(filtered)} disabled={!filtered.length} />
-            {can(CT.attributesCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create Attribute</CreateButton>}
+            {can(CT.attributesCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create attribute</CreateButton>}
           </>
         }
       />

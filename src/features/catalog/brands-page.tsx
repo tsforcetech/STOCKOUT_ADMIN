@@ -106,7 +106,7 @@ function BrandsContent() {
         actions={
           <>
             <ExportButton onExport={() => exportRows(filtered)} disabled={!filtered.length} />
-            {can(CT.brandsCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create Brand</CreateButton>}
+            {can(CT.brandsCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create brand</CreateButton>}
           </>
         }
       />

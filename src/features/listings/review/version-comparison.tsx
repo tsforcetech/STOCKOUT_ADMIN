@@ -155,7 +155,7 @@ export function VersionComparison({
               : `Compared with the published version v${p.versionNumber}. ${changeCount ? `${changeCount} field${changeCount === 1 ? "" : "s"} changed.` : "No field changes."}`
         }
       />
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="relative overflow-x-auto rounded-lg border border-border">
         <table className="w-full min-w-[560px] border-collapse text-sm">
           <caption className="sr-only">
             Candidate version compared with the published version
@@ -269,7 +269,7 @@ export function AttributesComparison({
           No attribute values on this version.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="relative overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[480px] border-collapse text-sm">
             <caption className="sr-only">Attribute values</caption>
             <thead className="bg-surface-muted">

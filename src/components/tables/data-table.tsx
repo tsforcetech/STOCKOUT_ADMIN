@@ -145,7 +145,7 @@ export function DataTable<T>({
   }, [pagination, pageCount, clientPagination.pageIndex]);
 
   return (
-    <div className={cn("overflow-hidden rounded-lg border border-border bg-surface", className)}>
+    <div className={cn("@container overflow-hidden rounded-lg border border-border bg-surface", className)}>
       {toolbar && <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">{toolbar}</div>}
 
       {error && !isLoading ? (
@@ -215,14 +215,15 @@ export function DataTable<T>({
       )}
 
       {!error && !isLoading && total > 0 && (
-        <div className="flex flex-col gap-3 border-t border-border px-4 py-3 text-sm text-foreground sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-3 border-t border-border px-4 py-3 text-sm text-foreground @xl:flex-row @xl:items-center @xl:justify-between">
+          <div className="whitespace-nowrap text-muted-foreground">
             Showing {formatNumber(from)}–{formatNumber(to)} of {formatNumber(total)}
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2">
+          {total > Math.min(...pageSizeOptions) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <label className="flex items-center gap-2 whitespace-nowrap">
               <span>Rows per page</span>
-              <NativeSelect className="h-8 w-[72px] px-2 pr-7 text-sm" value={pageSize} onChange={(e) => setSize(Number(e.target.value))} aria-label="Rows per page">
+              <NativeSelect className="h-8 w-[76px] px-2.5 text-sm" value={pageSize} onChange={(e) => setSize(Number(e.target.value))} aria-label="Rows per page">
                 {pageSizeOptions.map((s) => (
                   <option key={s} value={s}>
                     {s}
@@ -260,6 +261,7 @@ export function DataTable<T>({
               </Button>
             </nav>
           </div>
+          )}
         </div>
       )}
     </div>

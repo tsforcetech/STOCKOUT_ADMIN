@@ -147,7 +147,7 @@ function InspectionsContent() {
             <ExportButton onExport={exportRows} disabled={!items.length} />
             {can(P.INSPECTIONS_OVERRIDE) && (
               <Button variant="action" size="lg" className="h-12 text-base" onClick={() => setCreateOpen(true)}>
-                <PlusIcon /> Create inspection
+                Create inspection <PlusIcon />
               </Button>
             )}
           </>
@@ -200,24 +200,19 @@ function InspectionsContent() {
             </>
           }
         />
-        <Toolbar
-          className="-mt-1"
-          left={
-            <>
-              <label className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Created from</span>
-                <Input type="date" className="h-[38px] w-40" value={state.from} max={state.to || undefined} onChange={(e) => setState({ from: e.target.value }, { resetPage: true })} aria-label="Created from (UTC)" />
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">to</span>
-                <Input type="date" className="h-[38px] w-40" value={state.to} min={state.from || undefined} onChange={(e) => setState({ to: e.target.value }, { resetPage: true })} aria-label="Created to (UTC)" />
-              </label>
-              <GuidFilterInput value={mine ? "" : state.inspector} onChange={(inspector) => setState({ inspector }, { resetPage: true })} label="Inspector user ID" placeholder="Inspector user ID" />
-              <GuidFilterInput value={state.seller} onChange={(seller) => setState({ seller }, { resetPage: true })} label="Seller ID" placeholder="Seller ID" />
-              <GuidFilterInput value={state.category} onChange={(category) => setState({ category }, { resetPage: true })} label="Category ID" placeholder="Category ID" />
-            </>
-          }
-        />
+        <div className="-mt-1 mb-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-[auto_auto_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="w-24 shrink-0 text-muted-foreground xl:w-auto">Created from</span>
+            <Input type="date" className="h-[38px] min-w-0 flex-1 xl:w-40 xl:flex-none" value={state.from} max={state.to || undefined} onChange={(e) => setState({ from: e.target.value }, { resetPage: true })} aria-label="Created from (UTC)" />
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <span className="w-24 shrink-0 text-muted-foreground xl:w-auto">to</span>
+            <Input type="date" className="h-[38px] min-w-0 flex-1 xl:w-40 xl:flex-none" value={state.to} min={state.from || undefined} onChange={(e) => setState({ to: e.target.value }, { resetPage: true })} aria-label="Created to (UTC)" />
+          </label>
+          <GuidFilterInput className="sm:w-full" value={mine ? "" : state.inspector} onChange={(inspector) => setState({ inspector }, { resetPage: true })} label="Inspector user ID" placeholder="Inspector user ID" />
+          <GuidFilterInput className="sm:w-full" value={state.seller} onChange={(seller) => setState({ seller }, { resetPage: true })} label="Seller ID" placeholder="Seller ID" />
+          <GuidFilterInput className="sm:w-full" value={state.category} onChange={(category) => setState({ category }, { resetPage: true })} label="Category ID" placeholder="Category ID" />
+        </div>
         <DataTable
           caption="Inspections"
           columns={columns}

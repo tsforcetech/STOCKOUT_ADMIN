@@ -91,7 +91,7 @@ export function SessionsCard() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-end gap-2">
         <RefreshButton onClick={() => query.refetch()} spinning={query.isFetching} />
-        <Button variant="danger" size="sm" onClick={() => setPending({ kind: "all" })}>
+        <Button variant="danger" size="sm" className="h-[38px] px-4" onClick={() => setPending({ kind: "all" })}>
           Sign out all sessions
         </Button>
       </div>

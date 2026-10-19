@@ -109,7 +109,7 @@ function UnitsContent() {
         actions={
           <>
             <ExportButton onExport={() => exportRows(filtered)} disabled={!filtered.length} />
-            {can(CT.unitsCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create Unit</CreateButton>}
+            {can(CT.unitsCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create unit</CreateButton>}
           </>
         }
       />

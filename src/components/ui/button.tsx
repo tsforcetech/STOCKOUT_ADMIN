@@ -15,8 +15,8 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "rounded-full bg-primary text-primary-foreground hover:bg-primary-hover",
-        action: "rounded-md border border-transparent bg-ink text-ink-foreground hover:bg-ink-hover",
+        primary: "rounded-full bg-primary text-primary-foreground hover:bg-primary-hover disabled:not-aria-busy:bg-border-strong disabled:not-aria-busy:text-muted-foreground disabled:not-aria-busy:opacity-100",
+        action: "rounded-md border border-transparent bg-ink text-ink-foreground hover:bg-ink-hover disabled:not-aria-busy:bg-border-strong disabled:not-aria-busy:text-muted-foreground disabled:not-aria-busy:opacity-100",
         secondary: "rounded-md border border-secondary-border bg-surface text-foreground hover:bg-surface-muted",
         ghost: "rounded-md text-foreground hover:bg-surface-muted",
         danger: "rounded-full bg-danger text-white hover:bg-danger-hover",

@@ -171,7 +171,7 @@ function CategoriesContent() {
         actions={
           <>
             <ExportButton onExport={() => exportRows(rows)} disabled={!rows.length} />
-            {can(CT.categoriesCreate) && <CreateButton onClick={() => setForm({ id: null, parentId: null })}>Create Category</CreateButton>}
+            {can(CT.categoriesCreate) && <CreateButton onClick={() => setForm({ id: null, parentId: null })}>Create category</CreateButton>}
           </>
         }
       />

@@ -8,12 +8,15 @@ export function SectionCard({ className, children }: { className?: string; child
   return <section className={cn("min-w-0 rounded-xl bg-surface p-4 sm:p-6", className)}>{children}</section>;
 }
 
+/** On phones, dropdown filters in a toolbar share the row evenly instead of keeping their fixed desktop widths. */
+const COMBOBOX_GROW = "[&>[role=combobox]]:max-sm:w-auto! [&>[role=combobox]]:max-sm:min-w-36 [&>[role=combobox]]:max-sm:flex-1";
+
 /** Toolbar row above a table: search on the left, filters/actions on the right. */
 export function Toolbar({ left, right, className }: { left?: React.ReactNode; right?: React.ReactNode; className?: string }) {
   return (
     <div className={cn("mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">{left}</div>
-      {right && <div className="flex flex-wrap items-center gap-2">{right}</div>}
+      <div className={cn("flex min-w-0 flex-1 flex-wrap items-center gap-2", COMBOBOX_GROW)}>{left}</div>
+      {right && <div className={cn("flex flex-wrap items-center gap-2", COMBOBOX_GROW)}>{right}</div>}
     </div>
   );
 }

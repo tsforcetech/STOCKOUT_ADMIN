@@ -17,26 +17,26 @@ export interface StatItem {
 /** Figma "Stats cards": white 24px container with grey 16px cards (title + icon, H3 value, sub line). */
 export function StatCards({ items, className }: { items: StatItem[]; className?: string }) {
   return (
-    <div className={cn("grid grid-cols-1 gap-2 rounded-xl bg-surface p-2 sm:grid-cols-2 xl:grid-cols-4", className)}>
+    <div className={cn("grid grid-cols-2 gap-2 rounded-xl bg-surface p-2 xl:grid-cols-4", className)}>
       {items.map((item) => (
-        <div key={item.label} className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-surface-muted p-4">
-          <div className="flex items-center gap-2">
-            <p className="min-w-0 flex-1 truncate text-sm text-foreground">{item.label}</p>
-            {item.icon && <span className="text-foreground [&_svg]:size-5">{item.icon}</span>}
+        <div key={item.label} className="flex min-w-0 flex-col gap-2 rounded-lg border border-border bg-surface-muted p-3 sm:gap-3 sm:p-4">
+          <div className="flex items-start gap-2">
+            <p className="line-clamp-2 min-w-0 flex-1 text-sm leading-5 text-foreground">{item.label}</p>
+            {item.icon && <span className="shrink-0 text-foreground [&_svg]:size-5">{item.icon}</span>}
           </div>
           <div className="flex flex-col gap-1">
             {item.loading ? (
-              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-8 w-20 sm:h-10 sm:w-24" />
             ) : item.unavailable ? (
-              <p className="font-heading text-[32px] font-bold leading-10 text-muted-foreground" title={item.unavailable}>
+              <p className="font-heading text-[26px] font-bold leading-8 text-muted-foreground sm:text-[32px] sm:leading-10" title={item.unavailable}>
                 —
               </p>
             ) : (
-              <p className="truncate font-heading text-[32px] font-bold leading-10 text-foreground">{item.value}</p>
+              <p className="truncate font-heading text-[26px] font-bold leading-8 text-foreground sm:text-[32px] sm:leading-10">{item.value}</p>
             )}
             <p
               className={cn(
-                "truncate text-sm",
+                "line-clamp-2 text-sm",
                 item.unavailable ? "text-muted-foreground" : item.hintTone === "success" ? "text-success" : item.hintTone === "danger" ? "text-danger" : "text-muted-foreground",
               )}
             >

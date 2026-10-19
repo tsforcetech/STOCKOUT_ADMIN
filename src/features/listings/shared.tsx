@@ -100,7 +100,7 @@ export function Notice({ tone = "info", title, children, className }: { tone?: "
     danger: "border-danger/30 bg-danger-soft text-danger-soft-foreground",
   }[tone];
   return (
-    <div role={tone === "danger" ? "alert" : "note"} className={cn("flex gap-2.5 rounded-md border px-3 py-2.5 text-sm", styles, className)}>
+    <div role={tone === "danger" ? "alert" : "note"} className={cn("flex gap-2.5 rounded-md border px-3 py-2.5 text-sm [overflow-wrap:anywhere]", styles, className)}>
       {tone === "info" ? <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden /> : <WarningIcon className="mt-0.5 size-4 shrink-0" aria-hidden />}
       <div className="min-w-0 space-y-1">
         {title && <p className="font-medium">{title}</p>}
@@ -125,17 +125,17 @@ export function ApiErrorNotice({ error, className }: { error: unknown; className
 export function PanelTitle({ title, description, actions }: { title: React.ReactNode; description?: React.ReactNode; actions?: React.ReactNode }) {
   return (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1 basis-56">
         <h2 className="font-heading text-lg font-bold text-foreground">{title}</h2>
         {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
 
 /** Text input for a GUID filter. Only commits a valid GUID (or empty) to avoid server 400s. */
-export function GuidFilterInput({ value, onChange, label, placeholder }: { value: string; onChange: (value: string) => void; label: string; placeholder: string }) {
+export function GuidFilterInput({ value, onChange, label, placeholder, className }: { value: string; onChange: (value: string) => void; label: string; placeholder: string; className?: string }) {
   const [draft, setDraft] = React.useState(value);
   React.useEffect(() => {
     setDraft(value);
@@ -147,7 +147,7 @@ export function GuidFilterInput({ value, onChange, label, placeholder }: { value
   };
   return (
     <Input
-      className="h-[38px] w-full font-mono text-xs sm:w-[300px]"
+      className={cn("h-[38px] w-full font-mono text-xs placeholder:font-sans placeholder:text-sm sm:w-[300px]", className)}
       value={draft}
       aria-label={label}
       title={invalid ? "Enter a full GUID" : label}

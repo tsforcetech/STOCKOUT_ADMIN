@@ -112,7 +112,7 @@ function Body({ attribute }: { attribute: AdminAttributeDefinitionResponse }) {
         ) : options.length === 0 ? (
           <EmptyState title="No options yet" description="Add the values sellers can choose for this attribute." />
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="relative overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-max text-sm">
               <caption className="sr-only">Options for {attribute.name}</caption>
               <thead className="bg-surface-muted">

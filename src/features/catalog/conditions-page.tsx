@@ -112,7 +112,7 @@ function ConditionsContent() {
         actions={
           <>
             <ExportButton onExport={() => exportRows(filtered)} disabled={!filtered.length} />
-            {can(CT.conditionsCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create Condition</CreateButton>}
+            {can(CT.conditionsCreate) && <CreateButton onClick={() => setForm({ id: null })}>Create condition</CreateButton>}
           </>
         }
       />

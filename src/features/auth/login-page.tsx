@@ -82,7 +82,7 @@ export default function LoginPage() {
             </FormField>
             <div className="text-right">
               <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
-                Forgot Password?
+                Forgot password?
               </Link>
             </div>
           </div>

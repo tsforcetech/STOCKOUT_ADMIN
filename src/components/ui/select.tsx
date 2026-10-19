@@ -143,11 +143,11 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, Props>(function 
           aria-labelledby={ariaLabelledBy}
           aria-describedby={ariaDescribedBy}
           aria-invalid={ariaInvalid}
-          className={cn(inputClass, "cursor-pointer items-center justify-between gap-2 py-0 text-left data-[placeholder]:text-muted-foreground data-[state=open]:border-action-border", className)}
+          className={cn(inputClass, "group/select cursor-pointer items-center justify-between gap-2 py-0 text-left data-[placeholder]:text-muted-foreground data-[state=open]:border-action-border", className)}
         >
           <span className={cn("min-w-0 truncate", !selected?.text && "text-muted-foreground")}>{selected ? selected.label : (placeholder ?? "Select…")}</span>
           <S.Icon asChild>
-            <CaretDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform [[data-state=open]_&]:rotate-180" aria-hidden />
+            <CaretDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]/select:rotate-180" aria-hidden />
           </S.Icon>
         </S.Trigger>
         <S.Portal>

@@ -122,7 +122,7 @@ export default function DashboardPage() {
   }, [moderation.data, pendingKyc]);
 
   const now = new Date();
-  const eyebrow = `${now.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "2-digit" })} | ${now.toLocaleDateString(undefined, { weekday: "long" })}`;
+  const eyebrow = `${now.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" })} | ${now.toLocaleDateString(undefined, { weekday: "long" })}`;
   const firstName = user?.firstName || user?.displayName?.split(" ")[0];
 
   const nothingPermitted = !canListings && !canSellers && !canInspections && !canUsers;
@@ -234,28 +234,29 @@ export default function DashboardPage() {
             ) : workQueue.length === 0 ? (
               <EmptyState icon={<CheckCircleIcon />} title="All caught up" description="No listings or seller verifications are waiting for review." />
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full min-w-[560px] text-sm">
+              <div className="relative overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm sm:min-w-[560px]">
                   <caption className="sr-only">Items awaiting approval</caption>
                   <thead className="bg-surface-muted">
                     <tr>
                       <th scope="col" className="h-11 px-4 text-left font-medium text-foreground">Item</th>
-                      <th scope="col" className="h-11 px-4 text-left font-medium text-foreground">Type</th>
-                      <th scope="col" className="h-11 px-4 text-left font-medium text-foreground">Waiting</th>
-                      <th scope="col" className="h-11 px-4 text-right font-medium text-foreground"><span className="sr-only">Open</span></th>
+                      <th scope="col" className="hidden h-11 w-px px-4 text-left font-medium text-foreground sm:table-cell">Type</th>
+                      <th scope="col" className="h-11 w-px whitespace-nowrap px-4 text-left font-medium text-foreground">Waiting</th>
+                      <th scope="col" className="h-11 w-12 px-4 text-right font-medium text-foreground"><span className="sr-only">Open</span></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {workQueue.map((row) => (
                       <tr key={row.id} className="cursor-pointer transition-colors hover:bg-surface-muted/70" onClick={() => navigate(row.to)}>
-                        <td className="h-[60px] px-4">
-                          <div className="max-w-[300px] truncate text-foreground">{row.title}</div>
-                          <div className="text-xs text-muted-foreground">{row.code}</div>
+                        <td className="h-[60px] max-w-0 px-4 py-2.5">
+                          <div className="line-clamp-2 break-words text-foreground sm:line-clamp-1">{row.title}</div>
+                          <div className="truncate text-xs text-muted-foreground">{row.code}</div>
+                          <Badge tone="outline" className="mt-1.5 sm:hidden">{row.type}</Badge>
                         </td>
-                        <td className="px-4">
+                        <td className="hidden px-4 sm:table-cell">
                           <Badge tone="outline">{row.type}</Badge>
                         </td>
-                        <td className="px-4 text-foreground" title={formatDateTime(row.since)}>{waitingLabel(row.since)}</td>
+                        <td className="whitespace-nowrap px-4 text-foreground" title={formatDateTime(row.since)}>{waitingLabel(row.since)}</td>
                         <td className="px-4 text-right">
                           <Link to={row.to} onClick={(e) => e.stopPropagation()} aria-label={`Open ${row.title}`} className="inline-flex rounded p-1 hover:bg-surface-muted">
                             <CaretRightIcon className="size-4" />

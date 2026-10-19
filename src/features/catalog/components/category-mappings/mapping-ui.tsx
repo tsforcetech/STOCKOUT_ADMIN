@@ -15,7 +15,7 @@ export interface SimpleColumn<T> {
 export function SimpleTable<T>({ rows, columns, getKey, caption, emptyTitle, emptyDescription }: { rows: T[]; columns: SimpleColumn<T>[]; getKey: (row: T) => string; caption: string; emptyTitle: string; emptyDescription?: string }) {
   if (!rows.length) return <EmptyState className="py-8" title={emptyTitle} description={emptyDescription} />;
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="relative overflow-x-auto rounded-lg border border-border">
       <table className="w-full min-w-max text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className="bg-surface-muted">
