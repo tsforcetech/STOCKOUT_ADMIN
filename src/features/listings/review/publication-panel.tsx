@@ -1,7 +1,19 @@
 import * as React from "react";
 import { Link, useNavigate } from "react-router";
-import { useQueries, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
-import { CheckCircleIcon, XCircleIcon, ArrowCounterClockwiseIcon, PauseCircleIcon, PlayCircleIcon, RocketLaunchIcon, ClipboardTextIcon } from "@phosphor-icons/react";
+import {
+  useQueries,
+  useQueryClient,
+  type UseQueryResult,
+} from "@tanstack/react-query";
+import {
+  CheckCircleIcon,
+  XCircleIcon,
+  ArrowCounterClockwiseIcon,
+  PauseCircleIcon,
+  PlayCircleIcon,
+  RocketLaunchIcon,
+  ClipboardTextIcon,
+} from "@phosphor-icons/react";
 import { SectionCard, RefreshButton } from "@/components/common/section-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { FormField } from "@/components/forms/form-field";
@@ -26,7 +38,14 @@ import { inspectionKeys } from "@/features/inspections/queries";
 import { humanize } from "@/lib/utils/format";
 import { isApiError } from "@/lib/api/errors";
 import { listingKeys } from "../queries";
-import { ApiErrorNotice, Notice, PanelTitle, fmtUtc, isConflict, shortId } from "../shared";
+import {
+  ApiErrorNotice,
+  Notice,
+  PanelTitle,
+  fmtUtc,
+  isConflict,
+  shortId,
+} from "../shared";
 
 const GATES: Array<{ key: keyof PublicationGatesDto; label: string }> = [
   { key: "sellerStanding", label: "Seller standing" },
@@ -47,19 +66,33 @@ const SUSPENSION_REASONS: SuspensionReasonCode[] = [
   "SELLER_REQUESTED_PAUSE",
 ];
 
-const MEDIA_DEFECT_NOTE =
-  "Known backend issue: the media gate checks the primary image against the seller organisation id rather than the uploading user, so publish, republish and rollback are likely to fail with “not ready for publication” even when other gates pass.";
-
-export function EligibilityGates({ query, allowed }: { query: UseQueryResult<PublicationEligibilityResponse>; allowed: boolean }) {
+export function EligibilityGates({
+  query,
+  allowed,
+}: {
+  query: UseQueryResult<PublicationEligibilityResponse>;
+  allowed: boolean;
+}) {
   return (
     <SectionCard>
       <PanelTitle
         title="Publication readiness"
         description="Gates checked by the server before publishing this version."
-        actions={allowed ? <RefreshButton onClick={() => query.refetch()} spinning={query.isFetching} label="Re-check eligibility" /> : undefined}
+        actions={
+          allowed ? (
+            <RefreshButton
+              onClick={() => query.refetch()}
+              spinning={query.isFetching}
+              label="Re-check eligibility"
+            />
+          ) : undefined
+        }
       />
       {!allowed ? (
-        <Notice>Checking publication gates requires the catalog:listings:view permission.</Notice>
+        <Notice>
+          Checking publication gates requires the catalog:listings:view
+          permission.
+        </Notice>
       ) : query.isLoading ? (
         <div className="space-y-2">
           {GATES.map((g) => (
@@ -67,23 +100,51 @@ export function EligibilityGates({ query, allowed }: { query: UseQueryResult<Pub
           ))}
         </div>
       ) : query.error ? (
-        <ErrorState error={query.error} onRetry={() => query.refetch()} className="py-6" />
+        <ErrorState
+          error={query.error}
+          onRetry={() => query.refetch()}
+          className="py-6"
+        />
       ) : query.data ? (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm">
-            <StatusBadge value={query.data.isEligible ? "PASS" : "FAIL"} label={query.data.isEligible ? "Eligible to publish" : "Not eligible"} />
+            <StatusBadge
+              value={query.data.isEligible ? "PASS" : "FAIL"}
+              label={
+                query.data.isEligible ? "Eligible to publish" : "Not eligible"
+              }
+            />
           </div>
           <ul className="divide-y divide-border rounded-lg border border-border">
             {GATES.map((g) => {
               const gate = query.data.gates[g.key];
               return (
                 <li key={g.key} className="flex gap-2.5 px-3 py-2.5 text-sm">
-                  {gate.passed ? <CheckCircleIcon weight="fill" className="mt-0.5 size-4 shrink-0 text-success" aria-hidden /> : <XCircleIcon weight="fill" className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden />}
+                  {gate.passed ? (
+                    <CheckCircleIcon
+                      weight="fill"
+                      className="mt-0.5 size-4 shrink-0 text-success"
+                      aria-hidden
+                    />
+                  ) : (
+                    <XCircleIcon
+                      weight="fill"
+                      className="mt-0.5 size-4 shrink-0 text-danger"
+                      aria-hidden
+                    />
+                  )}
                   <div className="min-w-0">
                     <p>
-                      {g.label} <span className="sr-only">{gate.passed ? "passed" : "failed"}</span>
+                      {g.label}{" "}
+                      <span className="sr-only">
+                        {gate.passed ? "passed" : "failed"}
+                      </span>
                     </p>
-                    {gate.details && <p className="text-xs text-muted-foreground">{gate.details}</p>}
+                    {gate.details && (
+                      <p className="text-xs text-muted-foreground">
+                        {gate.details}
+                      </p>
+                    )}
                   </div>
                 </li>
               );
@@ -104,7 +165,13 @@ export function EligibilityGates({ query, allowed }: { query: UseQueryResult<Pub
   );
 }
 
-type Dialogs = "publish" | "republish" | "suspend" | "rollback" | "inspection" | null;
+type Dialogs =
+  | "publish"
+  | "republish"
+  | "suspend"
+  | "rollback"
+  | "inspection"
+  | null;
 
 /** Lifecycle actions driven by the documented state machines (version + listing aggregate). */
 export function PublicationActions({
@@ -125,8 +192,14 @@ export function PublicationActions({
   const [open, setOpen] = React.useState<Dialogs>(null);
 
   const refreshOnConflict = async (error: unknown) => {
-    if (isConflict(error) || (isApiError(error) && error.code === "MARKETPLACE_LISTING_TRANSITION_INVALID")) {
-      await queryClient.invalidateQueries({ queryKey: listingKeys.listing(c.listingId) });
+    if (
+      isConflict(error) ||
+      (isApiError(error) &&
+        error.code === "MARKETPLACE_LISTING_TRANSITION_INVALID")
+    ) {
+      await queryClient.invalidateQueries({
+        queryKey: listingKeys.listing(c.listingId),
+      });
     }
   };
   const invalidate = [listingKeys.listing(c.listingId), listingKeys.queueAll];
@@ -135,7 +208,11 @@ export function PublicationActions({
   const publish = useApiMutation({
     mutationFn: async () => {
       try {
-        return await moderationService.publish(c.listingId, c.listingVersionId, c.listingRowVersion);
+        return await moderationService.publish(
+          c.listingId,
+          c.listingVersionId,
+          c.listingRowVersion,
+        );
       } catch (e) {
         await refreshOnConflict(e);
         throw e;
@@ -149,7 +226,10 @@ export function PublicationActions({
   const republish = useApiMutation({
     mutationFn: async () => {
       try {
-        return await moderationService.republish(c.listingId, c.listingRowVersion);
+        return await moderationService.republish(
+          c.listingId,
+          c.listingRowVersion,
+        );
       } catch (e) {
         await refreshOnConflict(e);
         throw e;
@@ -161,7 +241,11 @@ export function PublicationActions({
     onSuccess: close,
   });
   const createInspection = useApiMutation({
-    mutationFn: () => inspectionsService.create({ listingId: c.listingId, listingVersionId: c.listingVersionId }),
+    mutationFn: () =>
+      inspectionsService.create({
+        listingId: c.listingId,
+        listingVersionId: c.listingVersionId,
+      }),
     toastOnError: false,
     invalidate: [inspectionKeys.queueAll],
     successMessage: (r) => `Inspection ${r.inspectionNo} created.`,
@@ -180,71 +264,145 @@ export function PublicationActions({
   }, [history, c.publishedVersionId]);
 
   const status = c.listingAggregateStatus;
-  const showPublish = c.versionStatus === "APPROVED" && can(P.CATALOG_LISTINGS_PUBLISH);
+  const showPublish =
+    c.versionStatus === "APPROVED" && can(P.CATALOG_LISTINGS_PUBLISH);
   const showSuspend = status === "PUBLISHED" && can(P.CATALOG_LISTINGS_SUSPEND);
-  const showRepublish = status === "SUSPENDED" && Boolean(c.publishedVersionId) && can(P.CATALOG_LISTINGS_PUBLISH);
-  const showRollback = (status === "PUBLISHED" || status === "SUSPENDED") && Boolean(c.publishedVersionId) && can(P.CATALOG_LISTINGS_PUBLISH) && rollbackCandidates.length > 0;
-  const showCreateInspection = c.versionStatus === "INSPECTION_REQUIRED" && can(P.INSPECTIONS_OVERRIDE);
+  const showRepublish =
+    status === "SUSPENDED" &&
+    Boolean(c.publishedVersionId) &&
+    can(P.CATALOG_LISTINGS_PUBLISH);
+  const showRollback =
+    (status === "PUBLISHED" || status === "SUSPENDED") &&
+    Boolean(c.publishedVersionId) &&
+    can(P.CATALOG_LISTINGS_PUBLISH) &&
+    rollbackCandidates.length > 0;
+  const showCreateInspection =
+    c.versionStatus === "INSPECTION_REQUIRED" && can(P.INSPECTIONS_OVERRIDE);
   const notEligible = eligibility ? !eligibility.isEligible : false;
-  const nothing = !showPublish && !showSuspend && !showRepublish && !showRollback && !showCreateInspection;
+  const nothing =
+    !showPublish &&
+    !showSuspend &&
+    !showRepublish &&
+    !showRollback &&
+    !showCreateInspection;
 
   return (
     <SectionCard>
-      <PanelTitle title="Listing actions" description={<span className="inline-flex items-center gap-2">Listing status <StatusBadge value={status} /></span>} />
+      <PanelTitle
+        title="Listing actions"
+        description={
+          <span className="inline-flex items-center gap-2">
+            Listing status <StatusBadge value={status} />
+          </span>
+        }
+      />
       <div className="space-y-3">
         {showPublish && (
           <div className="space-y-2">
-            <Button variant="action" className="w-full" onClick={() => { publish.reset(); setOpen("publish"); }} disabled={notEligible}>
+            <Button
+              variant="action"
+              className="w-full"
+              onClick={() => {
+                publish.reset();
+                setOpen("publish");
+              }}
+              disabled={notEligible}
+            >
               <RocketLaunchIcon /> Publish this version
             </Button>
-            {notEligible && <p className="text-xs text-muted-foreground">Publishing is disabled until every publication gate passes.</p>}
+            {notEligible && (
+              <p className="text-xs text-muted-foreground">
+                Publishing is disabled until every publication gate passes.
+              </p>
+            )}
           </div>
         )}
         {showRepublish && (
-          <Button variant="action" className="w-full" onClick={() => { republish.reset(); setOpen("republish"); }}>
+          <Button
+            variant="action"
+            className="w-full"
+            onClick={() => {
+              republish.reset();
+              setOpen("republish");
+            }}
+          >
             <PlayCircleIcon /> Republish listing
           </Button>
         )}
         {showSuspend && (
-          <Button variant="secondary" className="w-full" onClick={() => setOpen("suspend")}>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => setOpen("suspend")}
+          >
             <PauseCircleIcon /> Suspend listing
           </Button>
         )}
         {showRollback && (
-          <Button variant="secondary" className="w-full" onClick={() => setOpen("rollback")}>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => setOpen("rollback")}
+          >
             <ArrowCounterClockwiseIcon /> Roll back to an earlier version
           </Button>
         )}
         {showCreateInspection && (
-          <Button variant="secondary" className="w-full" onClick={() => { createInspection.reset(); setOpen("inspection"); }}>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={() => {
+              createInspection.reset();
+              setOpen("inspection");
+            }}
+          >
             <ClipboardTextIcon /> Create inspection
           </Button>
         )}
-        {(showPublish || showRepublish || showRollback) && <Notice tone="warning">{MEDIA_DEFECT_NOTE}</Notice>}
-        {(status === "PUBLISHED" || status === "SUSPENDED") && !historyAllowed && can(P.CATALOG_LISTINGS_PUBLISH) && (
-          <Notice>Rollback targets come from publication history, which requires catalog:listings:view.</Notice>
-        )}
+        {(status === "PUBLISHED" || status === "SUSPENDED") &&
+          !historyAllowed &&
+          can(P.CATALOG_LISTINGS_PUBLISH) && (
+            <Notice>
+              Rollback targets come from publication history, which requires
+              catalog:listings:view.
+            </Notice>
+          )}
         {(status === "PUBLISHED" || status === "SUSPENDED") && (
-          <p className="text-xs text-muted-foreground">The moderation API does not expose the listing expiry date; the server rejects suspend/republish on an expired listing.</p>
+          <p className="text-xs text-muted-foreground">
+            The moderation API does not expose the listing expiry date; the
+            server rejects suspend/republish on an expired listing.
+          </p>
         )}
         {c.versionStatus === "INSPECTION_REQUIRED" && (
           <Notice>
             This version is waiting for a PASS inspection.{" "}
             {can(P.INSPECTIONS_VIEW) && (
-              <Link className="underline underline-offset-4" to={`/inspections?seller=${c.sellerId}`}>
+              <Link
+                className="underline underline-offset-4"
+                to={`/inspections?seller=${c.sellerId}`}
+              >
                 Find this seller's inspections
               </Link>
             )}
           </Notice>
         )}
-        {nothing && c.versionStatus !== "INSPECTION_REQUIRED" && <p className="text-sm text-muted-foreground">No publication actions are available for this version and listing status with your permissions.</p>}
+        {nothing && c.versionStatus !== "INSPECTION_REQUIRED" && (
+          <p className="text-sm text-muted-foreground">
+            No publication actions are available for this version and listing
+            status with your permissions.
+          </p>
+        )}
       </div>
 
       <ConfirmDialog
         open={open === "publish"}
         onOpenChange={(o) => !o && close()}
         title={`Publish version v${c.versionNumber}?`}
-        description={c.publishedVersionId ? "This version replaces the currently published version, which becomes superseded." : "The listing becomes publicly visible."}
+        description={
+          c.publishedVersionId
+            ? "This version replaces the currently published version, which becomes superseded."
+            : "The listing becomes publicly visible."
+        }
         confirmLabel="Publish"
         tone="primary"
         loading={publish.isPending}
@@ -279,7 +437,13 @@ export function PublicationActions({
         <ApiErrorNotice error={createInspection.error} />
       </ConfirmDialog>
 
-      <SuspendDialog open={open === "suspend"} onClose={close} listingId={c.listingId} rowVersion={c.listingRowVersion} onConflict={refreshOnConflict} />
+      <SuspendDialog
+        open={open === "suspend"}
+        onClose={close}
+        listingId={c.listingId}
+        rowVersion={c.listingRowVersion}
+        onConflict={refreshOnConflict}
+      />
       <RollbackDialog
         open={open === "rollback"}
         onClose={close}
@@ -293,7 +457,19 @@ export function PublicationActions({
   );
 }
 
-function SuspendDialog({ open, onClose, listingId, rowVersion, onConflict }: { open: boolean; onClose: () => void; listingId: string; rowVersion: string; onConflict: (e: unknown) => Promise<void> }) {
+function SuspendDialog({
+  open,
+  onClose,
+  listingId,
+  rowVersion,
+  onConflict,
+}: {
+  open: boolean;
+  onClose: () => void;
+  listingId: string;
+  rowVersion: string;
+  onConflict: (e: unknown) => Promise<void>;
+}) {
   const [reason, setReason] = React.useState<string>("POLICY_VIOLATION");
   const [custom, setCustom] = React.useState("");
   const [remarks, setRemarks] = React.useState("");
@@ -301,7 +477,11 @@ function SuspendDialog({ open, onClose, listingId, rowVersion, onConflict }: { o
   const mutation = useApiMutation({
     mutationFn: async () => {
       try {
-        return await moderationService.suspend(listingId, { reasonCode: reason === "OTHER" ? custom.trim() : reason, remarks: remarks.trim() || null, expectedRowVersion: rowVersion });
+        return await moderationService.suspend(listingId, {
+          reasonCode: reason === "OTHER" ? custom.trim() : reason,
+          remarks: remarks.trim() || null,
+          expectedRowVersion: rowVersion,
+        });
       } catch (e) {
         await onConflict(e);
         throw e;
@@ -320,13 +500,20 @@ function SuspendDialog({ open, onClose, listingId, rowVersion, onConflict }: { o
   });
   const customMissing = reason === "OTHER" && !custom.trim();
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => !o && !mutation.isPending && onClose()}
+    >
       <DialogContent
         title="Suspend listing"
         description="The listing is hidden from buyers until it is republished or rolled back."
         footer={
           <>
-            <Button variant="secondary" onClick={onClose} disabled={mutation.isPending}>
+            <Button
+              variant="secondary"
+              onClick={onClose}
+              disabled={mutation.isPending}
+            >
               Cancel
             </Button>
             <Button
@@ -344,7 +531,10 @@ function SuspendDialog({ open, onClose, listingId, rowVersion, onConflict }: { o
       >
         <div className="space-y-4">
           <FormField label="Reason" htmlFor="suspend-reason" required>
-            <NativeSelect value={reason} onChange={(e) => setReason(e.target.value)}>
+            <NativeSelect
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            >
               {SUSPENSION_REASONS.map((r) => (
                 <option key={r} value={r}>
                   {humanize(r)}
@@ -354,12 +544,32 @@ function SuspendDialog({ open, onClose, listingId, rowVersion, onConflict }: { o
             </NativeSelect>
           </FormField>
           {reason === "OTHER" && (
-            <FormField label="Reason code" htmlFor="suspend-custom" required error={touched && customMissing ? "Enter a reason code." : undefined}>
-              <Input value={custom} maxLength={100} onChange={(e) => setCustom(e.target.value)} />
+            <FormField
+              label="Reason code"
+              htmlFor="suspend-custom"
+              required
+              error={
+                touched && customMissing ? "Enter a reason code." : undefined
+              }
+            >
+              <Input
+                value={custom}
+                maxLength={100}
+                onChange={(e) => setCustom(e.target.value)}
+              />
             </FormField>
           )}
-          <FormField label="Remarks" htmlFor="suspend-remarks" hint="Optional context recorded with the suspension.">
-            <Textarea rows={3} maxLength={1000} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+          <FormField
+            label="Remarks"
+            htmlFor="suspend-remarks"
+            hint="Optional context recorded with the suspension."
+          >
+            <Textarea
+              rows={3}
+              maxLength={1000}
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+            />
           </FormField>
           <ApiErrorNotice error={mutation.error} />
         </div>
@@ -394,7 +604,8 @@ function RollbackDialog({
   const details = useQueries({
     queries: candidates.map((versionId) => ({
       queryKey: listingKeys.detail(listingId, versionId),
-      queryFn: ({ signal }: { signal: AbortSignal }) => moderationService.detail(listingId, versionId, signal),
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        moderationService.detail(listingId, versionId, signal),
       enabled: open,
       staleTime: 30_000,
     })),
@@ -403,12 +614,18 @@ function RollbackDialog({
   const options = candidates
     .map((id, i) => ({ id, data: details[i]?.data, error: details[i]?.error }))
     .filter((o) => o.data?.candidateVersion.versionStatus === "SUPERSEDED");
-  const lastPublished = (id: string) => history.find((h) => h.listingVersionId === id)?.publishedAtUtc;
+  const lastPublished = (id: string) =>
+    history.find((h) => h.listingVersionId === id)?.publishedAtUtc;
 
   const mutation = useApiMutation({
     mutationFn: async () => {
       try {
-        return await moderationService.rollback(listingId, { targetRollbackVersionId: target, reasonCode: reasonCode.trim(), remarks: remarks.trim() || null, expectedRowVersion: rowVersion });
+        return await moderationService.rollback(listingId, {
+          targetRollbackVersionId: target,
+          reasonCode: reasonCode.trim(),
+          remarks: remarks.trim() || null,
+          expectedRowVersion: rowVersion,
+        });
       } catch (e) {
         await onConflict(e);
         throw e;
@@ -428,13 +645,20 @@ function RollbackDialog({
   const invalid = !target || !reasonCode.trim();
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && !mutation.isPending && onClose()}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => !o && !mutation.isPending && onClose()}
+    >
       <DialogContent
         title="Roll back listing"
         description="Re-publishes an earlier superseded version. The current version becomes superseded and the listing becomes published (also if suspended)."
         footer={
           <>
-            <Button variant="secondary" onClick={onClose} disabled={mutation.isPending}>
+            <Button
+              variant="secondary"
+              onClick={onClose}
+              disabled={mutation.isPending}
+            >
               Cancel
             </Button>
             <Button
@@ -457,25 +681,55 @@ function RollbackDialog({
             htmlFor="rollback-target"
             required
             error={touched && !target ? "Choose a version." : undefined}
-            hint={loading ? "Checking which earlier versions are superseded…" : options.length === 0 ? "No superseded version was found in this listing's publication history." : "Only superseded versions from publication history are listed."}
+            hint={
+              loading
+                ? "Checking which earlier versions are superseded…"
+                : options.length === 0
+                  ? "No superseded version was found in this listing's publication history."
+                  : "Only superseded versions from publication history are listed."
+            }
           >
-            <NativeSelect value={target} onChange={(e) => setTarget(e.target.value)} disabled={loading || options.length === 0}>
+            <NativeSelect
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              disabled={loading || options.length === 0}
+            >
               <option value="">Select a version</option>
               {options.map((o) => (
                 <option key={o.id} value={o.id}>
-                  v{o.data?.candidateVersion.versionNumber} · {o.data?.candidateVersion.title} · {shortId(o.id)}
-                  {lastPublished(o.id) ? ` · last published ${fmtUtc(lastPublished(o.id))}` : ""}
+                  v{o.data?.candidateVersion.versionNumber} ·{" "}
+                  {o.data?.candidateVersion.title} · {shortId(o.id)}
+                  {lastPublished(o.id)
+                    ? ` · last published ${fmtUtc(lastPublished(o.id))}`
+                    : ""}
                 </option>
               ))}
             </NativeSelect>
           </FormField>
-          <FormField label="Reason code" htmlFor="rollback-reason" required error={touched && !reasonCode.trim() ? "A reason code is required." : undefined}>
-            <Input value={reasonCode} maxLength={100} onChange={(e) => setReasonCode(e.target.value)} />
+          <FormField
+            label="Reason code"
+            htmlFor="rollback-reason"
+            required
+            error={
+              touched && !reasonCode.trim()
+                ? "A reason code is required."
+                : undefined
+            }
+          >
+            <Input
+              value={reasonCode}
+              maxLength={100}
+              onChange={(e) => setReasonCode(e.target.value)}
+            />
           </FormField>
           <FormField label="Remarks" htmlFor="rollback-remarks">
-            <Textarea rows={3} maxLength={1000} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+            <Textarea
+              rows={3}
+              maxLength={1000}
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+            />
           </FormField>
-          <Notice tone="warning">{MEDIA_DEFECT_NOTE}</Notice>
           <ApiErrorNotice error={mutation.error} />
         </div>
       </DialogContent>

@@ -40,15 +40,32 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-action focus:px-3 focus:py-2 focus:text-action-foreground">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-action focus:px-3 focus:py-2 focus:text-action-foreground"
+      >
         Skip to content
       </a>
       <TopBar onOpenMobileNav={() => setMobileOpen(true)} />
-      {navigation.state === "loading" && <div className="fixed inset-x-0 top-0 z-50 h-0.5 animate-pulse bg-action-border" role="progressbar" aria-label="Loading page" />}
+      {navigation.state === "loading" && (
+        <div
+          className="fixed inset-x-0 top-0 z-50 h-0.5 animate-pulse bg-action-border"
+          role="progressbar"
+          aria-label="Loading page"
+        />
+      )}
 
       <div className="flex min-h-0 flex-1">
-        <aside className={cn("sticky top-[71px] hidden h-[calc(100dvh-71px)] shrink-0 flex-col bg-sidebar transition-[width] duration-200 lg:flex", collapsed ? "w-[76px]" : "w-[262px]")}>
-          <SidebarNav collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
+        <aside
+          className={cn(
+            "sticky top-[71px] hidden h-[calc(100dvh-71px)] shrink-0 flex-col bg-sidebar transition-[width] duration-200 lg:flex",
+            collapsed ? "w-[76px]" : "w-[262px]",
+          )}
+        >
+          <SidebarNav
+            collapsed={collapsed}
+            onToggleCollapsed={toggleCollapsed}
+          />
           <SidebarUser collapsed={collapsed} />
         </aside>
 
@@ -57,7 +74,11 @@ export function AppLayout() {
             <div className="flex h-[71px] items-center px-6">
               <Logo />
             </div>
-            <SidebarNav collapsed={false} showCollapseToggle={false} onNavigate={() => setMobileOpen(false)} />
+            <SidebarNav
+              collapsed={false}
+              showCollapseToggle={false}
+              onNavigate={() => setMobileOpen(false)}
+            />
             <SidebarUser collapsed={false} />
           </SheetContent>
         </Dialog>
