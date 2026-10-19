@@ -79,7 +79,16 @@ function putToStorage(upload: CreateUploadResponse, file: File, onProgress?: (fr
       xhr.status >= 200 && xhr.status < 300
         ? resolve()
         : reject(new ApiError({ kind: "http", status: xhr.status, message: "The file could not be stored. Please try again." }));
-    xhr.onerror = () => reject(new ApiError({ kind: "network", status: 0, message: defaultMessageFor("network") }));
+    // A browser-blocked PUT (status 0) almost always means the storage bucket has no CORS rule for this
+    // site's origin (S3 answers the preflight with "CORS is not enabled for this bucket").
+    xhr.onerror = () =>
+      reject(
+        new ApiError({
+          kind: "network",
+          status: 0,
+          message: navigator.onLine === false ? defaultMessageFor("network") : "The file storage blocked this upload. It needs to allow uploads from this website (storage CORS settings) — please contact support.",
+        }),
+      );
     xhr.onabort = () => reject(new ApiError({ kind: "aborted", status: 0, message: defaultMessageFor("aborted") }));
     signal?.addEventListener("abort", () => xhr.abort(), { once: true });
     xhr.send(file);
