@@ -34,3 +34,11 @@ export function validateSettingValue(type: PlatformSettingValueType, value: stri
 }
 
 export const VALUE_TYPE_LABEL: Record<PlatformSettingValueType, string> = { BOOLEAN: "Boolean", INTEGER: "Integer", DECIMAL: "Decimal", STRING: "Text" };
+
+/** Unit shown next to a numeric value, read from the key's suffix (e.g. `…-expiry-minutes`). */
+export function unitFor(key: string): string | null {
+  const m = /[-_.](seconds|minutes|hours|days|percent|pct)$/i.exec(key);
+  if (!m) return null;
+  const u = m[1]!.toLowerCase();
+  return u === "percent" || u === "pct" ? "%" : u;
+}

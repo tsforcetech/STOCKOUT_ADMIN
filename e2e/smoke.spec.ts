@@ -88,3 +88,41 @@ test("no console errors on the login page", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("settings: grouped cards with in-place editing", async ({ page }, info) => {
+  await mockSession(page, ["settings.view", "settings.update", "feature-flags.view", "feature-flags.update"]);
+  const setting = (key: string, name: string, description: string, currentValue: string | null, defaultValue: string) => ({
+    platformSettingId: key, key, name, description, category: "Inventory", valueType: "INTEGER", currentValue, defaultValue, effectiveValue: currentValue ?? defaultValue, isEditable: true, version: 3, updatedAtUtc: "2026-10-18T08:00:00",
+  });
+  await page.route("**/api/v1/platform/settings", (r) =>
+    json(r, { success: true, data: [
+      setting("listing.inventory.reservation.default-expiry-minutes", "Listing Reservation Default Expiry Minutes", "Default duration in minutes for temporary listing inventory reservations (valid range: 1-120).", null, "15"),
+      setting("listing.inventory.reservation.max-expiry-minutes", "Listing Reservation Max Expiry Minutes", "Maximum duration in minutes a reservation may be held (valid range: 1-1440).", "120", "60"),
+    ] }),
+  );
+  await page.route("**/api/v1/platform/feature-flags", (r) =>
+    json(r, { success: true, data: [{ platformFeatureFlagId: "f1", key: "seller.subscription.enforcement.enabled", name: "Seller Subscription Enforcement", description: "Controls whether seller subscription enforcement is active.", isEnabled: false, defaultEnabled: false, version: 1, updatedAtUtc: null }] }),
+  );
+  let put: unknown = null;
+  await page.route("**/api/v1/platform/settings/listing.inventory.reservation.default-expiry-minutes", async (r) => {
+    put = r.request().postDataJSON();
+    await json(r, { success: true, data: setting("listing.inventory.reservation.default-expiry-minutes", "Listing Reservation Default Expiry Minutes", "", "30", "15") });
+  });
+
+  await signIn(page);
+  await page.goto("/settings");
+  await expect(page.getByRole("region", { name: "Inventory" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Feature flags" })).toBeVisible();
+  await expect(page.getByRole("table")).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath(`settings-${info.project.name}.png`), fullPage: true });
+
+  const input = page.getByLabel("Listing Reservation Default Expiry Minutes");
+  await input.fill("abc");
+  await expect(page.getByRole("alert")).toContainText("whole number");
+  await input.fill("30");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect.poll(() => put).toEqual({ value: "30", expectedVersion: 3 });
+
+  await page.getByRole("button", { name: /Feature flags/ }).click();
+  await expect(page.getByRole("region", { name: "Inventory" })).toHaveCount(0);
+});
