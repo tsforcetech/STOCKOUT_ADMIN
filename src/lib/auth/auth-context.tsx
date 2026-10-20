@@ -41,6 +41,8 @@ interface AuthContextValue {
   /** Clears local session state without calling the API (e.g. after password change). */
   endSessionLocally: (reason: "expired" | "signed-out") => void;
   reloadAccess: () => Promise<void>;
+  /** Starts a session from tokens issued outside the login form (e.g. invitation sign-up). */
+  startSession: (tokens: { accessToken: string; refreshToken: string; expiresIn: number }) => Promise<void>;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -258,6 +260,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       endSessionLocally,
       reloadAccess,
+      startSession: completeSignIn as (tokens: { accessToken: string; refreshToken: string; expiresIn: number }) => Promise<void>,
     }),
     [
       status,
@@ -271,6 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       endSessionLocally,
       reloadAccess,
+      completeSignIn,
     ],
   );
 

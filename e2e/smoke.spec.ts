@@ -127,12 +127,20 @@ test("settings: grouped cards with in-place editing", async ({ page }, info) => 
   await expect(page.getByRole("region", { name: "Inventory" })).toHaveCount(0);
 });
 
-test("invitation link opens the accept page for visitors", async ({ page }, info) => {
+test("invitation link: new users create an account, existing users log in", async ({ page }, info) => {
   await mockSession(page, []);
+  let state = "NEW";
+  await page.route("**/api/v1/auth/invitations/validate", (r) => json(r, { invitedEmail: "new.admin@stockout.test", expiresAtUtc: "2026-10-27T10:00:00", accountState: state }));
   await page.goto("/platform/invitation?token=abc123");
-  await expect(page.getByRole("heading", { name: "You're invited" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create account and accept" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Email" })).toHaveValue("new.admin@stockout.test");
+  await page.screenshot({ path: test.info().outputPath(`invitation-new-${info.project.name}.png`), fullPage: true });
+
+  state = "EXISTING_VERIFIED";
+  await page.goto("/platform/invitation?token=abc124");
   await expect(page.getByRole("link", { name: "Log in to accept" })).toBeVisible();
-  await page.screenshot({ path: test.info().outputPath(`invitation-${info.project.name}.png`), fullPage: true });
+  await page.screenshot({ path: test.info().outputPath(`invitation-existing-${info.project.name}.png`), fullPage: true });
   await page.getByRole("link", { name: "Log in to accept" }).click();
-  await expect(page).toHaveURL(/\/login\?next=%2Fplatform%2Finvitation%3Ftoken%3Dabc123/);
+  await expect(page).toHaveURL(/\/login\?email=new.admin%40stockout.test&next=/);
+  await expect(page.getByLabel("Email", { exact: true })).toHaveValue("new.admin@stockout.test");
 });

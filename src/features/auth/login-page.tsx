@@ -35,7 +35,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
-  const form = useForm<Credentials>({ resolver: zodResolver(credentialsSchema), defaultValues: { emailOrMobile: "", password: "" } });
+  const form = useForm<Credentials>({ resolver: zodResolver(credentialsSchema), defaultValues: { emailOrMobile: params.get("email") ?? "", password: "" } });
 
   const goNext = () => {
     const next = params.get("next");

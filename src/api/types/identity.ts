@@ -513,3 +513,7 @@ export interface ServiceTokenResponse {
 export interface JsonWebKeySet {
   keys: Array<{ kty: 'RSA'; use: 'sig'; alg: 'RS256'; kid: string; n: string; e: string }>;
 }
+
+
+/** accountState of ValidateInvitationResponse: log in (EXISTING_VERIFIED), verify first (EXISTING_UNVERIFIED) or create an account (NEW). */
+export type InvitationAccountState = ValidateInvitationResponse["accountState"];
