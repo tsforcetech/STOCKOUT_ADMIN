@@ -1,5 +1,6 @@
 import * as React from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { Switch } from "@/components/ui/misc";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Dialog } from "@/components/ui/dialog";
@@ -25,6 +26,7 @@ const schema = z.object({
   description: requiredText("Description", L.descriptionMaxLength),
   displayOrder: intString("Display order", { min: -2147483648, max: 2147483647 }),
   parentCategoryId: z.string(),
+  requiresPhysicalInspection: z.boolean(),
 });
 type Values = z.infer<typeof schema>;
 
@@ -52,6 +54,7 @@ function Body({
       description: category?.description ?? "",
       displayOrder: String(category?.displayOrder ?? 0),
       parentCategoryId: category ? (category.parentCategoryId ?? "") : (defaultParentId ?? ""),
+      requiresPhysicalInspection: category?.requiresPhysicalInspection ?? false,
     },
   });
   const { errors } = form.formState;
@@ -75,6 +78,7 @@ function Body({
         description: v.description,
         displayOrder: toInt(v.displayOrder),
         parentCategoryId: v.parentCategoryId || null,
+        requiresPhysicalInspection: v.requiresPhysicalInspection,
       };
       return category ? catalogService.updateCategory(category.categoryId, { ...body, expectedVersion: category.version }) : catalogService.createCategory({ ...body, code: v.code });
     },
@@ -144,6 +148,24 @@ function Body({
       <FormField label="Description" htmlFor="cat-description" required error={errors.description?.message} hint={`Required by the API. Up to ${L.descriptionMaxLength} characters.`}>
         <Textarea {...form.register("description")} rows={3} maxLength={L.descriptionMaxLength} />
       </FormField>
+      <Controller
+        control={form.control}
+        name="requiresPhysicalInspection"
+        render={({ field }) => (
+          <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
+            <div className="min-w-0">
+              <label htmlFor="cat-inspection" className="text-sm font-medium text-foreground">
+                Requires physical inspection
+              </label>
+              <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                New listings in this category need an inspector's visit before they can go live. Applies to this exact category only — subcategories don't inherit it, so
+                switch it on for each subcategory sellers list in. Listings already submitted keep their current setting.
+              </p>
+            </div>
+            <Switch id="cat-inspection" checked={field.value} onCheckedChange={field.onChange} />
+          </div>
+        )}
+      />
     </FormDialogContent>
   );
 }

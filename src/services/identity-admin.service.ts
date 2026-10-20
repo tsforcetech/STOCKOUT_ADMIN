@@ -4,9 +4,8 @@ import type { AccountStatus, AdminUpdateUserStatusRequest, StandardSuccessRespon
 /**
  * identity-access admin endpoints (/api/v1/identity/admin/*). Plain DTO responses, ProblemDetails errors.
  *
- * SECURITY NOTE (backend defect): these endpoints have NO server-side authorization — any
- * authenticated user may change any account's status. The UI gates them behind
- * `platform-users.disable`; that is a client-side restriction only.
+ * Authorization (fixed in B2): Active needs platform-users.enable or .update; Locked/Suspended/Closed need
+ * platform-users.disable or .update; other statuses need .update. Denied → 403 ProblemDetails.
  * Locked | Suspended | Closed revoke all of the user's sessions and refresh tokens.
  * Contract: docs/contracts/identity-access.md §4
  */

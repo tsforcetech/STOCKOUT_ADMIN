@@ -57,7 +57,7 @@ export const inspectionsService = {
 
   start: (inspectionId: Guid, expectedRowVersion: RowVersion) => http.post<InspectionSummaryDto>(`${one(inspectionId)}/start`, { expectedRowVersion }),
 
-  /** KNOWN BACKEND DEFECT: returns 200 but persists no answers (contract §9.1). */
+  /** Saves checklist answers (fixed in R3-A: answers now persist). Every item needs its inspectionResponseId. */
   saveResponses: (inspectionId: Guid, body: SaveInspectionResponsesRequest) => http.put<SaveResponsesResult>(`${one(inspectionId)}/responses`, body),
 
   attachEvidence: (inspectionId: Guid, body: AttachEvidenceRequest) => http.post<InspectionEvidenceDto>(`${one(inspectionId)}/evidence`, body),

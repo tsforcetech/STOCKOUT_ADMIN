@@ -447,6 +447,8 @@ export interface CreateCategoryRequest {
   displayOrder: number;
   parentCategoryId?: Guid | null; // null => root
   name: string; // required, <=200
+  /** R3-A: listings in this exact category need a physical inspection before publish (default false). */
+  requiresPhysicalInspection?: boolean | null;
 }
 
 /** C# UpdateCategoryRequest (code immutable). */
@@ -457,6 +459,8 @@ export interface UpdateCategoryRequest {
   parentCategoryId?: Guid | null; // null => move to root
   name: string;
   expectedVersion: number;
+  /** R3-A: omitted/null keeps the current value. */
+  requiresPhysicalInspection?: boolean | null;
 }
 
 /** C# AdminCategoryResponse (flat; tree built client-side from parentCategoryId). */
@@ -470,6 +474,8 @@ export interface AdminCategoryResponse {
   parentCategoryName: string | null; // null on the POST (create) response even when a parent is set
   name: string;
   isActive: boolean;
+  /** R3-A: snapshotted onto new listing versions in this exact category (not inherited by children). */
+  requiresPhysicalInspection: boolean;
   version: number;
   createdAtUtc: IsoDateTime;
   updatedAtUtc: IsoDateTime | null;
@@ -764,7 +770,7 @@ export interface UpdateCategoryUnitsRequest {
   expectedCategoryVersion: number;
   inheritanceMode: InheritanceMode; // regex ^(INHERIT|OVERRIDE)$, case-sensitive
   defaultUnitId?: Guid | null;
-  units: DirectCategoryUnitRequest[]; // BROKEN for non-empty arrays: always 404 UNIT_NOT_FOUND (see markdown)
+  units: DirectCategoryUnitRequest[]; // each unitId at most once (409 CATEGORY_UNIT_ALREADY_ASSIGNED); fixed in R3-A
 }
 
 /** C# AdminCategoryUnitItem. */

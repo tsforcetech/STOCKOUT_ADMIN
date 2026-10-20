@@ -294,11 +294,6 @@ export function ChecklistPanel({ inspection, editable }: { inspection: Inspectio
         title="Checklist"
         description={`${responses.length} item${responses.length === 1 ? "" : "s"} snapshotted from the template · ${answeredRequired}/${required} required items have a stored result.`}
       />
-      <Notice tone="warning" className="mb-4" title="Known backend defect">
-        Saving responses returns success but the server does not store the answers (it serialises them with the wrong property casing). Inspections whose template has
-        required items therefore cannot be completed (MARKETPLACE_INSPECTION_CHECKLIST_INCOMPLETE) until the backend is fixed. This screen checks what the server returns
-        and tells you if nothing was stored.
-      </Notice>
       {responses.length === 0 ? (
         <p className="text-sm text-muted-foreground">This inspection has no checklist items.</p>
       ) : editable ? (
@@ -330,8 +325,8 @@ export function ChecklistPanel({ inspection, editable }: { inspection: Inspectio
           </ol>
           {notPersisted !== null && notPersisted > 0 && (
             <Notice tone="danger" title="The server did not store your answers">
-              The save call returned 200, but {notPersisted} of {responses.length} item{responses.length === 1 ? "" : "s"} came back unchanged. This is the known backend defect described
-              above. Your input is kept on this page; nothing has been lost locally.
+              The save call succeeded, but {notPersisted} of {responses.length} item{responses.length === 1 ? "" : "s"} came back unchanged. Your input is kept on this page; refresh
+              the inspection and save again, and report it if it keeps happening.
             </Notice>
           )}
           <ApiErrorNotice error={save.error} />

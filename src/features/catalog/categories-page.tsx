@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { StatCards } from "@/components/common/stat-cards";
 import { SectionCard, Toolbar, RefreshButton, RowAction } from "@/components/common/section-card";
 import { StatusBadge } from "@/components/common/status-badge";
+import { Badge } from "@/components/ui/misc";
 import { EntityCell } from "@/components/common/entity-cell";
 import { ExportButton } from "@/components/common/export-button";
 import { DataTable } from "@/components/tables/data-table";
@@ -88,6 +89,7 @@ function CategoriesContent() {
         { header: "Display order", value: (c) => c.displayOrder },
         { header: "Description", value: (c) => c.description },
         { header: "Status", value: (c) => statusValue(c.isActive) },
+        { header: "Requires physical inspection", value: (c) => (c.requiresPhysicalInspection ? "Yes" : "No") },
         { header: "Version", value: (c) => c.version },
         { header: "Updated (UTC)", value: (c) => c.updatedAtUtc ?? c.createdAtUtc },
       ]),
@@ -115,6 +117,19 @@ function CategoriesContent() {
             </span>
           );
         },
+      },
+      {
+        id: "inspection",
+        header: "Inspection",
+        accessorFn: (c) => (c.requiresPhysicalInspection ? 1 : 0),
+        cell: ({ row }) =>
+          row.original.requiresPhysicalInspection ? (
+            <Badge tone="info" title="New listings in this category need a physical inspection">
+              Required
+            </Badge>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
       },
       {
         id: "children",

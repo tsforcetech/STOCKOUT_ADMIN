@@ -23,16 +23,12 @@ import {
 } from "@/api/types/catalog-taxonomy";
 import { catalogService } from "@/services/catalog.service";
 import { catalogKeys, useUnitsQuery } from "../../lib/queries";
-import { hasErrorCode } from "../../lib/errors";
 import { useCatalogMutation } from "../../lib/use-catalog-mutation";
 import { FormDialogContent } from "../form-dialog";
-import { MutationError, Notice } from "../shared";
+import { MutationError } from "../shared";
 import { INT_RE, MappingSection, NUM_RE, RemoveRowButton, SimpleTable, SourceCategory, tdClass, thClass } from "./mapping-ui";
 
 type Row = { key: string; unitId: string; order: string; min: string; max: string; precision: string };
-
-const BROKEN_PUT_NOTICE =
-  "Known backend defect: saving a non-empty unit list currently fails with 404 UNIT_NOT_FOUND (the service sends PascalCase JSON keys the database procedure cannot read). Only an empty list works today — it clears direct units and saves the inheritance mode and default unit.";
 
 function validateRows(rows: Row[]): string | null {
   if (rows.some((r) => !r.unitId)) return "Choose a unit for every row, or remove empty rows.";
@@ -100,7 +96,6 @@ function Editor({ category, data, units, onDone }: { category: AdminCategoryResp
       })),
     );
   };
-  const brokenFailure = hasErrorCode(mutation.error, "UNIT_NOT_FOUND") && rows.length > 0;
 
   return (
     <FormDialogContent
@@ -112,15 +107,7 @@ function Editor({ category, data, units, onDone }: { category: AdminCategoryResp
       submitting={mutation.isPending}
       onSubmit={submit}
     >
-      <Notice tone="warning">{BROKEN_PUT_NOTICE}</Notice>
-      {brokenFailure ? (
-        <div role="alert" className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger-soft-foreground">
-          The server answered 404 UNIT_NOT_FOUND. This is the known backend defect above, not a problem with the units you picked. Remove all unit rows to save only the inheritance mode and default
-          unit.
-        </div>
-      ) : (
-        <MutationError error={mutation.error} reloadKeys={[catalogKeys.category(category.categoryId)]} onReloaded={onDone} />
-      )}
+      <MutationError error={mutation.error} reloadKeys={[catalogKeys.category(category.categoryId)]} onReloaded={onDone} />
       {validation && (
         <p role="alert" className="text-sm text-danger-soft-foreground">
           {validation}
@@ -274,7 +261,6 @@ export function CategoryUnitsTab({ category, nameOf }: { category: AdminCategory
       <MappingSection title="Effective units" description="What sellers can use for quantities in this category.">
         <SimpleTable rows={data.effectiveUnits} columns={columns} getKey={(u) => `${u.unitId}:${u.sourceCategoryId}`} caption="Effective units" emptyTitle="No units apply" />
       </MappingSection>
-      {canEdit && <Notice tone="warning">{BROKEN_PUT_NOTICE}</Notice>}
 
       <Dialog open={open} onOpenChange={setOpen}>
         {open &&

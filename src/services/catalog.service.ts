@@ -96,7 +96,7 @@ export const catalogService = {
   categoryConditions: (id: string, signal?: AbortSignal) => get<AdminCategoryConditionsResponse>(`/categories/${seg(id)}/conditions`, signal),
   updateCategoryConditions: (id: string, body: UpdateCategoryConditionsRequest) => put<AdminCategoryConditionsResponse>(`/categories/${seg(id)}/conditions`, body),
   categoryUnits: (id: string, signal?: AbortSignal) => get<AdminCategoryUnitsResponse>(`/categories/${seg(id)}/units`, signal),
-  /** Backend defect: any non-empty `units` array currently fails with 404 UNIT_NOT_FOUND (contract §5.4). */
+  /** Replaces the direct units. Duplicate unitIds → 409 CATEGORY_UNIT_ALREADY_ASSIGNED (fixed R3-A; non-empty lists save). */
   updateCategoryUnits: (id: string, body: UpdateCategoryUnitsRequest) => put<AdminCategoryUnitsResponse>(`/categories/${seg(id)}/units`, body),
 
   // Conditions (D1–D8)

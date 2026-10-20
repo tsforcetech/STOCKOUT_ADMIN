@@ -303,8 +303,7 @@ function CompleteDialog({ open, inspection, onClose }: { open: boolean; inspecti
         <form onSubmit={submit} noValidate className="space-y-4">
           {missingRequired > 0 && (
             <Notice tone="warning" title={`${missingRequired} required item${missingRequired === 1 ? " has" : "s have"} no stored result`}>
-              The server will reject completion with MARKETPLACE_INSPECTION_CHECKLIST_INCOMPLETE. Because of a known backend defect, saved responses are not persisted, so this
-              cannot currently be fixed from the admin app.
+              Answer them in the Checklist and save before completing — the server rejects completion until every required item has a result.
             </Notice>
           )}
           {result === "PASS" && failedRequired > 0 && <Notice tone="warning">A required item is marked Fail; the server will not accept a PASS.</Notice>}

@@ -4,6 +4,7 @@ import { ArrowCounterClockwiseIcon, ArrowLeftIcon, FolderPlusIcon, PencilSimpleI
 import { PageHeader, DetailList } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
 import { StatusBadge } from "@/components/common/status-badge";
+import { Badge } from "@/components/ui/misc";
 import { IdText } from "@/components/common/copy-button";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/misc";
@@ -103,6 +104,10 @@ function Detail({ category, all, allLoaded }: { category: AdminCategoryResponse;
           columns={3}
           items={[
             { label: "Status", value: <StatusBadge value={statusValue(category.isActive)} /> },
+            {
+              label: "Physical inspection",
+              value: category.requiresPhysicalInspection ? <Badge tone="info">Required</Badge> : <span className="text-muted-foreground">Not required</span>,
+            },
             { label: "Code", value: <span className="font-mono text-xs">{category.code}</span> },
             { label: "Slug", value: <span className="font-mono text-xs">/{category.slug}</span> },
             {

@@ -41,7 +41,7 @@ const MESSAGES: Record<string, string> = {
   CATEGORY_INACTIVE: "The category is inactive. Reactivate it to manage its assignments.",
   CATEGORY_ATTRIBUTE_ALREADY_ASSIGNED: "One of these attributes is already assigned on an ancestor category.",
   CATEGORY_BRAND_ALREADY_ASSIGNED: "One of these brands is already assigned on an ancestor category.",
-  CATEGORY_UNIT_ALREADY_ASSIGNED: "One of these units is already assigned on an ancestor category.",
+  CATEGORY_UNIT_ALREADY_ASSIGNED: "A unit can only be assigned once — check for duplicate rows or a unit already set on a parent category.",
   CATEGORY_HIERARCHY_INVALID: "An ancestor category is inactive.",
   // Conditions & grades
   CONDITION_NOT_FOUND: "A selected condition no longer exists.",

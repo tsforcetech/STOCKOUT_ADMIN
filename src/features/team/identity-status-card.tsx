@@ -9,11 +9,25 @@ import { getErrorMessage } from "@/lib/api/errors";
 import { ACCOUNT_STATUSES, identityAdminService } from "@/services/identity-admin.service";
 import type { AccountStatus } from "@/api/types/identity";
 import { humanize } from "@/lib/utils/format";
+import { isApiError } from "@/lib/api/errors";
+import { useAccess } from "@/lib/auth/use-access";
+import { PERMISSIONS as P } from "@/api/types/user-organization";
 
 const REVOKING: AccountStatus[] = ["Locked", "Suspended", "Closed"];
 
-/** Identity account status (login-level), separate from platform access. Gated by platform-users.disable in the UI only. */
+/**
+ * Which statuses the signed-in admin may set — mirrors the server check (identity AdminController.cs:96-113):
+ * Active needs enable or update; Locked/Suspended/Closed need disable or update; anything else needs update.
+ */
+export function useSettableAccountStatuses(): AccountStatus[] {
+  const { can } = useAccess();
+  const update = can(P.PLATFORM_USERS_UPDATE);
+  return ACCOUNT_STATUSES.filter((s) => (s === "Active" ? update || can(P.PLATFORM_USERS_ENABLE) : REVOKING.includes(s) ? update || can(P.PLATFORM_USERS_DISABLE) : update));
+}
+
+/** Identity account status (login-level), separate from platform access. The identity service enforces the permissions server-side. */
 export function IdentityStatusCard({ userId, userName }: { userId: string; userName: string }) {
+  const settable = useSettableAccountStatuses();
   const [status, setStatus] = React.useState<AccountStatus | "">("");
   const [reason, setReason] = React.useState("");
   const [touched, setTouched] = React.useState(false);
@@ -37,9 +51,9 @@ export function IdentityStatusCard({ userId, userName }: { userId: string; userN
 
   return (
     <div className="space-y-4">
-      <div role="note" className="rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-xs text-warning-soft-foreground">
-        Security note: the identity service does not authorise this endpoint server-side — any signed-in user could call it. Access here is restricted in the console to holders of <span className="font-mono">platform-users.disable</span>. The current account status of another user is not exposed by an admin API.
-      </div>
+      <p className="text-xs text-muted-foreground">
+        Changes whether this person can sign in at all. The current account status of another user isn't available from the API, so pick the status you want to set.
+      </p>
       <FormError message={error} />
       <form
         noValidate
@@ -53,7 +67,7 @@ export function IdentityStatusCard({ userId, userName }: { userId: string; userN
         <FormField label="New account status" htmlFor="identity-status" required error={statusError}>
           <NativeSelect value={status} onChange={(e) => setStatus(e.target.value as AccountStatus | "")}>
             <option value="">Select status…</option>
-            {ACCOUNT_STATUSES.map((s) => (
+            {settable.map((s) => (
               <option key={s} value={s}>
                 {humanize(s)}
               </option>
@@ -87,8 +101,9 @@ export function IdentityStatusCard({ userId, userName }: { userId: string; userN
             { status, reason: reason.trim() },
             {
               onError: (e) => {
-                setError(getErrorMessage(e));
-                toast.error(getErrorMessage(e));
+                const message = isApiError(e) && e.status === 403 ? `You don't have permission to set an account to ${humanize(status).toLowerCase()}.` : getErrorMessage(e);
+                setError(message);
+                toast.error(message);
                 setConfirming(false);
               },
             },

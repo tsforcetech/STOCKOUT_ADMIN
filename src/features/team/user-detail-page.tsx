@@ -122,7 +122,7 @@ function UserDetailContent() {
         )}
       </SectionCard>
 
-      {can(P.PLATFORM_USERS_DISABLE) && (
+      {(can(P.PLATFORM_USERS_DISABLE) || can(P.PLATFORM_USERS_ENABLE) || can(P.PLATFORM_USERS_UPDATE)) && (
         <SectionCard>
           <h3 className="font-heading text-lg font-bold text-foreground">Identity account status</h3>
           <p className="mb-4 text-sm text-muted-foreground">Controls whether the user can sign in at all (independent of platform access above).</p>
