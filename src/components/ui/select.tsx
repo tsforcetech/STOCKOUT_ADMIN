@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Select as S } from "radix-ui";
-import { CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
+import { Popover, Select as S } from "radix-ui";
+import { CaretDownIcon, CheckIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils/cn";
 import { inputClass } from "./input-class";
 
@@ -38,7 +38,16 @@ function collectOptions(children: React.ReactNode, out: Option[] = []): Option[]
   return out;
 }
 
-type Props = React.SelectHTMLAttributes<HTMLSelectElement> & { placeholder?: string };
+type Props = React.SelectHTMLAttributes<HTMLSelectElement> & {
+  placeholder?: string;
+  /** Show a search box in the dropdown. Defaults to on for lists longer than SEARCH_THRESHOLD options. */
+  searchable?: boolean;
+  searchPlaceholder?: string;
+};
+
+/** Lists longer than this get a search box (sellers, categories, users… grow without limit). */
+const SEARCH_THRESHOLD = 10;
+const norm = (v: string) => v.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 /**
  * Drop-in replacement for a native <select> with a styled dropdown (Radix Select).
@@ -56,6 +65,8 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, Props>(function 
     disabled,
     id,
     placeholder,
+    searchable,
+    searchPlaceholder,
     title,
     "aria-label": ariaLabel,
     "aria-labelledby": ariaLabelledBy,
@@ -112,6 +123,47 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, Props>(function 
     }
     if (!controlled) setInner(next);
   };
+
+  const hidden = (
+    <select
+      {...rest}
+      ref={setRefs}
+      {...(controlled ? { value } : { defaultValue })}
+      onChange={onChange ?? (() => undefined)}
+      onBlur={onBlur}
+      disabled={disabled}
+      aria-hidden
+      tabIndex={-1}
+      className="sr-only"
+    >
+      {children}
+    </select>
+  );
+
+  if (searchable ?? options.length > SEARCH_THRESHOLD) {
+    return (
+      <>
+        {hidden}
+        <SearchableDropdown
+          options={options}
+          current={current}
+          selected={selected}
+          onChoose={choose}
+          onClosed={() => selectRef.current?.dispatchEvent(new FocusEvent("focusout", { bubbles: true }))}
+          disabled={disabled}
+          id={id}
+          title={title}
+          ariaLabel={ariaLabel}
+          ariaLabelledBy={ariaLabelledBy}
+          ariaDescribedBy={ariaDescribedBy}
+          ariaInvalid={ariaInvalid}
+          placeholder={placeholder}
+          searchPlaceholder={searchPlaceholder}
+          className={className}
+        />
+      </>
+    );
+  }
 
   return (
     <>
@@ -179,3 +231,176 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, Props>(function 
     </>
   );
 });
+
+/** Popover + search box + listbox, for long lists. Same trigger look as the Radix select. */
+function SearchableDropdown({
+  options,
+  current,
+  selected,
+  onChoose,
+  onClosed,
+  disabled,
+  id,
+  title,
+  ariaLabel,
+  ariaLabelledBy,
+  ariaDescribedBy,
+  ariaInvalid,
+  placeholder,
+  searchPlaceholder,
+  className,
+}: {
+  options: Option[];
+  current: string;
+  selected: Option | undefined;
+  onChoose: (v: string) => void;
+  onClosed: () => void;
+  disabled?: boolean;
+  id?: string;
+  title?: string;
+  ariaLabel?: string;
+  ariaLabelledBy?: string;
+  ariaDescribedBy?: string;
+  ariaInvalid?: React.AriaAttributes["aria-invalid"];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  className?: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [query, setQuery] = React.useState("");
+  const [active, setActive] = React.useState(0);
+  const listRef = React.useRef<HTMLUListElement>(null);
+  const listId = React.useId();
+
+  const q = norm(query.trim());
+  const shown = q ? options.filter((o) => norm(o.text).includes(q) || norm(o.value) === q) : options;
+
+  const setOpenState = (next: boolean) => {
+    setOpen(next);
+    if (next) {
+      setQuery("");
+      setActive(Math.max(0, options.findIndex((o) => o.value === current)));
+    } else onClosed();
+  };
+
+  React.useEffect(() => {
+    if (!open) return;
+    listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)?.scrollIntoView?.({ block: "nearest" });
+  }, [active, open]);
+
+  const pick = (o: Option | undefined) => {
+    if (!o || o.disabled) return;
+    onChoose(o.value === "" ? EMPTY : o.value);
+    setOpenState(false);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const step = (dir: 1 | -1) => {
+      if (!shown.length) return;
+      let i = active;
+      for (let n = 0; n < shown.length; n++) {
+        i = (i + dir + shown.length) % shown.length;
+        if (!shown[i]!.disabled) break;
+      }
+      setActive(i);
+    };
+    const keys: Record<string, () => void> = {
+      ArrowDown: () => step(1),
+      ArrowUp: () => step(-1),
+      Home: () => setActive(0),
+      End: () => setActive(Math.max(0, shown.length - 1)),
+      Enter: () => pick(shown[active]),
+    };
+    const run = keys[e.key];
+    if (run) {
+      e.preventDefault();
+      run();
+    }
+  };
+
+  return (
+    <Popover.Root open={open} onOpenChange={setOpenState}>
+      <Popover.Trigger
+        type="button"
+        id={id}
+        title={title}
+        disabled={disabled}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        aria-haspopup="listbox"
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
+        data-state={open ? "open" : "closed"}
+        className={cn(inputClass, "group/select cursor-pointer items-center justify-between gap-2 py-0 text-left disabled:cursor-not-allowed data-[state=open]:border-action-border", className)}
+      >
+        <span className={cn("min-w-0 truncate", !selected?.text && "text-muted-foreground")}>{selected ? selected.label : (placeholder ?? "Select…")}</span>
+        <CaretDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]/select:rotate-180" aria-hidden />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="start"
+          sideOffset={6}
+          collisionPadding={12}
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            (e.currentTarget as HTMLElement | null)?.querySelector("input")?.focus();
+          }}
+          className="z-[80] flex max-h-[min(380px,var(--radix-popover-content-available-height))] w-[max(var(--radix-popover-trigger-width),16rem)] max-w-[min(26rem,calc(100vw-24px))] flex-col overflow-hidden rounded-xl border border-border bg-surface text-foreground shadow-raised data-[state=open]:animate-[fade-in_120ms_ease-out]"
+        >
+          <div className="flex items-center gap-2 border-b border-border px-3">
+            <MagnifyingGlassIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setActive(0);
+              }}
+              onKeyDown={onKeyDown}
+              placeholder={searchPlaceholder ?? "Search…"}
+              aria-label={searchPlaceholder ?? "Search options"}
+              aria-controls={listId}
+              aria-activedescendant={shown[active] ? `${listId}-${active}` : undefined}
+              className="h-10 w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+          <ul ref={listRef} id={listId} role="listbox" aria-label={ariaLabel ?? "Options"} className="min-h-0 flex-1 overflow-y-auto p-1">
+            {shown.length === 0 ? (
+              <li className="px-3 py-6 text-center text-sm text-muted-foreground">No matches for “{query.trim()}”</li>
+            ) : (
+              shown.map((o, i) => (
+                <li
+                  key={o.value || EMPTY}
+                  id={`${listId}-${i}`}
+                  data-index={i}
+                  role="option"
+                  aria-selected={o.value === current}
+                  aria-disabled={o.disabled || undefined}
+                  onMouseMove={() => !o.disabled && setActive(i)}
+                  onClick={() => pick(o)}
+                  className={cn(
+                    "relative flex cursor-pointer select-none items-center rounded-lg py-2 pl-8 pr-3 text-sm",
+                    i === active && "bg-surface-muted",
+                    o.value === current && "font-medium",
+                    o.disabled && "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  {o.value === current && <CheckIcon className="absolute left-2.5 size-4" weight="bold" aria-hidden />}
+                  <span className="min-w-0 truncate">{o.label}</span>
+                </li>
+              ))
+            )}
+          </ul>
+          {q && shown.length > 0 && (
+            <p className="border-t border-border px-3 py-1.5 text-[11px] text-muted-foreground">
+              {shown.length} of {options.length}
+            </p>
+          )}
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}

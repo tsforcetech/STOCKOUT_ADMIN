@@ -11,7 +11,7 @@ import { ExportButton } from "@/components/common/export-button";
 import { DataTable } from "@/components/tables/data-table";
 import { SearchInput } from "@/components/tables/table-toolbar";
 import { NativeSelect } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/misc";
+import { FilterPills } from "@/components/common/filter-pills";
 import { RequirePermission } from "@/lib/auth/guards";
 import { useUrlState } from "@/hooks/use-url-state";
 import { sellersService } from "@/services/sellers.service";
@@ -23,6 +23,7 @@ import { downloadCsv, toCsv } from "@/lib/utils/csv";
 const TABS = [
   { value: "all", label: "All" },
   { value: "pending", label: "Pending KYC" },
+  { value: "onboarding", label: "Onboarding" },
   { value: "verified", label: "Verified" },
   { value: "rejected", label: "Rejected" },
   { value: "suspended", label: "Suspended" },
@@ -33,7 +34,9 @@ type TabValue = (typeof TABS)[number]["value"];
 function matchesTab(s: MarketplaceSellerDto, tab: TabValue): boolean {
   switch (tab) {
     case "pending":
-      return s.verificationStatus === "PENDING";
+      return canReview(s);
+    case "onboarding":
+      return s.verificationStatus === "PENDING" && !canReview(s);
     case "verified":
       return s.verificationStatus === "VERIFIED";
     case "rejected":
@@ -151,16 +154,16 @@ function SellersContent() {
         ]}
       />
       <SectionCard>
-        <Tabs value={state.tab} onValueChange={(tab) => { setSelection({}); setState({ tab }); }}>
-          <TabsList aria-label="Seller status">
-            {TABS.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-        <div className="pt-4">
+        <FilterPills
+          label="Seller status"
+          value={state.tab}
+          onChange={(tab) => {
+            setSelection({});
+            setState({ tab });
+          }}
+          items={TABS.map((t) => ({ value: t.value, label: t.label, count: query.data ? sellers.filter((s) => matchesTab(s, t.value)).length : undefined, highlight: t.value === "pending" }))}
+        />
+        <div className="pt-3">
           <Toolbar
             left={<SearchInput value={state.q} onChange={(q) => setState({ q })} placeholder="Search sellers..." />}
             right={

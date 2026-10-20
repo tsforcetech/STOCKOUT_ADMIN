@@ -183,7 +183,7 @@ function AssignDialog({ open, mode, inspection, onClose }: { open: boolean; mode
         <div className="space-y-4">
           {usePicker ? (
             <FormField label="Inspector" htmlFor="assign-user" required error={touched && invalid ? "Choose a user." : undefined} hint={users.isLoading ? "Loading platform users…" : undefined}>
-              <NativeSelect value={userId} onChange={(e) => setUserId(e.target.value)} disabled={users.isLoading}>
+              <NativeSelect value={userId} onChange={(e) => setUserId(e.target.value)} disabled={users.isLoading} searchable searchPlaceholder="Search name or email…">
                 <option value="">Select a platform user</option>
                 {candidates.map((u) => (
                   <option key={u.userId} value={u.userId}>

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { ArrowRightIcon, ClockIcon, ImageIcon, PackageIcon, RocketLaunchIcon, StorefrontIcon, SquaresFourIcon, ListBulletsIcon, XIcon } from "@phosphor-icons/react";
 import { SectionCard, Toolbar, RefreshButton, RowAction } from "@/components/common/section-card";
+import { FilterPills } from "@/components/common/filter-pills";
 import { StatCards, type StatItem } from "@/components/common/stat-cards";
 import { StatusBadge } from "@/components/common/status-badge";
 import { DataTable } from "@/components/tables/data-table";
@@ -232,29 +233,18 @@ export function AllListings() {
         ]}
       />
       <SectionCard>
-        <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Listing state">
-          {VIEWS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              role="tab"
-              aria-selected={v.key === view.key}
-              onClick={() => setState({ view: v.key }, { resetPage: true })}
-              className={cn(
-                "shrink-0 cursor-pointer rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
-                v.key === view.key ? "border-foreground bg-foreground text-surface" : "border-border bg-surface text-foreground hover:border-foreground/40",
-              )}
-            >
-              {v.label}
-              {v.key === "ready" && ready.data?.totalCount ? <span className="ml-1.5 rounded-full bg-action px-1.5 text-xs text-action-foreground">{formatNumber(ready.data.totalCount)}</span> : null}
-            </button>
-          ))}
-        </div>
+        <FilterPills
+          className="mb-4"
+          label="Listing state"
+          value={view.key}
+          onChange={(v) => setState({ view: v }, { resetPage: true })}
+          items={VIEWS.map((v) => ({ value: v.key, label: v.label, count: v.key === "ready" ? ready.data?.totalCount : undefined, highlight: v.key === "ready" }))}
+        />
         <Toolbar
           left={
             <>
               <SearchInput value={search} onChange={setSearch} placeholder="Search title, LST number or listing ID…" />
-              <NativeSelect className="h-[38px] w-full sm:w-52" value={state.seller} onChange={(e) => setState({ seller: e.target.value }, { resetPage: true })} aria-label="Seller">
+              <NativeSelect className="h-[38px] w-full sm:w-52" value={state.seller} onChange={(e) => setState({ seller: e.target.value }, { resetPage: true })} aria-label="Seller" searchPlaceholder="Search sellers…">
                 <option value="">All sellers</option>
                 {(sellers.data ?? [])
                   .slice()
@@ -265,7 +255,7 @@ export function AllListings() {
                     </option>
                   ))}
               </NativeSelect>
-              <NativeSelect className="h-[38px] w-full sm:w-56" value={state.category} onChange={(e) => setState({ category: e.target.value }, { resetPage: true })} aria-label="Category">
+              <NativeSelect className="h-[38px] w-full sm:w-56" value={state.category} onChange={(e) => setState({ category: e.target.value }, { resetPage: true })} aria-label="Category" searchPlaceholder="Search categories…">
                 <option value="">All categories</option>
                 {(categories.data ?? [])
                   .slice()
