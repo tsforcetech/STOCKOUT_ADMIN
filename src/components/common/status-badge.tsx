@@ -37,6 +37,11 @@ const TONES: Record<string, BadgeTone> = {
   REINSPECTION_REQUIRED: "warning",
   // templates
   RETIRED: "neutral",
+  // search index jobs
+  CLAIMED: "info",
+  RUNNING: "info",
+  COMPLETED_WITH_ERRORS: "warning",
+  FAILED: "danger",
 };
 
 /** Figma status pill: small dot + label. Tone is derived from the backend value. */
