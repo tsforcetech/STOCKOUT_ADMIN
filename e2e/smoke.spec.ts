@@ -126,3 +126,13 @@ test("settings: grouped cards with in-place editing", async ({ page }, info) => 
   await page.getByRole("button", { name: /Feature flags/ }).click();
   await expect(page.getByRole("region", { name: "Inventory" })).toHaveCount(0);
 });
+
+test("invitation link opens the accept page for visitors", async ({ page }, info) => {
+  await mockSession(page, []);
+  await page.goto("/platform/invitation?token=abc123");
+  await expect(page.getByRole("heading", { name: "You're invited" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Log in to accept" })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath(`invitation-${info.project.name}.png`), fullPage: true });
+  await page.getByRole("link", { name: "Log in to accept" }).click();
+  await expect(page).toHaveURL(/\/login\?next=%2Fplatform%2Finvitation%3Ftoken%3Dabc123/);
+});

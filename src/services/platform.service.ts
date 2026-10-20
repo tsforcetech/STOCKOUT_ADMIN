@@ -65,6 +65,13 @@ export const platformService = {
     unwrapData<BatchInvitePlatformUsersResponse["data"]>(await http.post<BatchInvitePlatformUsersResponse>("/api/v1/platform/users/invitations/batch", body)),
   resendInvitation: (id: string) => post<unknown>(`/api/v1/platform/users/invitations/${seg(id)}/resend`),
   revokeInvitation: (id: string) => post<unknown>(`/api/v1/platform/users/invitations/${seg(id)}/revoke`),
+  /**
+   * POST /api/v1/platform/invitations/accept { token } (PlatformInvitationsController.cs:124). The caller must be signed in
+   * with a verified email equal to the invited one. Errors: 400 INVALID_INVITATION_TOKEN / EMAIL_NOT_VERIFIED / INVALID_EMAIL /
+   * INVALID_USER, 404 INVITATION_NOT_FOUND, 409 INVITATION_ALREADY_ACCEPTED / INVITATION_REVOKED / INVITATION_EXPIRED /
+   * INVITATION_EMAIL_MISMATCH.
+   */
+  acceptInvitation: (token: string) => post<unknown>("/api/v1/platform/invitations/accept", { token }),
 
   // Roles & permissions
   permissions: (signal?: AbortSignal) => get<PlatformPermissionResponse[]>("/api/v1/platform/permissions", signal),

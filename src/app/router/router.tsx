@@ -81,6 +81,8 @@ export const routes: RouteObject[] = [
         ],
       },
       { path: "reset-password", lazy: page(() => import("@/features/auth/reset-password-page")) },
+      // Link in the invitation email. Public: invitees usually have no admin access until they accept.
+      { path: "platform/invitation", lazy: page(() => import("@/features/auth/accept-invitation-page")) },
       {
         element: <RequireAuth />,
         children: [{ path: "/", element: <AppLayout />, errorElement: <RouteError />, children: appRoutes }],

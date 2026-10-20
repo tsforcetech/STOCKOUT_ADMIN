@@ -8,6 +8,8 @@ export const env = {
   refreshTokenStorage: (import.meta.env.VITE_REFRESH_TOKEN_STORAGE === "local" ? "local" : "session") as
     | "local"
     | "session",
+  /** Public marketplace (buyer site), where people create a StockOut account before accepting an invitation. */
+  marketplaceUrl: trimTrailingSlash(import.meta.env.VITE_MARKETPLACE_URL || "https://tsforcetech.github.io/STOCKOUT_BUYER"),
   requestTimeoutMs: 30_000,
   isDev: import.meta.env.DEV,
 } as const;
