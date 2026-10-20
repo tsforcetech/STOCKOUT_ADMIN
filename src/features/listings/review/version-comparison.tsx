@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { IdText } from "@/components/common/copy-button";
 import { Badge } from "@/components/ui/misc";
 import { cn } from "@/lib/utils/cn";
+import { env } from "@/config/env";
 import { formatMoney, humanize } from "@/lib/utils/format";
 import type {
   CandidateAttributeDto,
@@ -323,6 +324,52 @@ export function AttributesComparison({
   );
 }
 
+/** Photo through the public route: works once the listing is live; owner-scoped otherwise (backend C4). */
+function MediaTile({ fileId, isPrimary, order, onState }: { fileId: string; isPrimary: boolean; order: number; onState: (id: string, ok: boolean) => void }) {
+  const [state, setState] = React.useState<"loading" | "ok" | "blocked">("loading");
+  const url = `${env.apiBaseUrl}/api/v1/files/${encodeURIComponent(fileId)}/download`;
+  return (
+    <li className="overflow-hidden rounded-xl border border-border bg-surface">
+      <div className="relative aspect-[4/3] bg-surface-muted">
+        {state !== "blocked" && (
+          <a href={state === "ok" ? url : undefined} target="_blank" rel="noopener noreferrer" aria-label={`Open photo ${order}`} className="block size-full">
+            <img
+              src={url}
+              alt={`Listing photo ${order}`}
+              loading="lazy"
+              onLoad={() => {
+                setState("ok");
+                onState(fileId, true);
+              }}
+              onError={() => {
+                setState("blocked");
+                onState(fileId, false);
+              }}
+              className={cn("size-full object-cover transition-opacity", state === "ok" ? "opacity-100" : "opacity-0")}
+            />
+          </a>
+        )}
+        {state !== "ok" && (
+          <span className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-3 text-center text-muted-foreground">
+            <ImageIcon className={cn("size-7", state === "loading" && "animate-pulse")} />
+            {state === "blocked" && <span className="text-[11px] leading-4">No preview: the photo isn&apos;t public yet</span>}
+          </span>
+        )}
+        {isPrimary && (
+          <Badge tone="primary" className="absolute left-2 top-2">
+            <StarIcon className="size-3" weight="fill" /> Cover
+          </Badge>
+        )}
+        <span className="absolute right-2 top-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">#{order}</span>
+      </div>
+      <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <IdText value={fileId} />
+        {state === "blocked" && <FileLink fileId={fileId} label="Try download" />}
+      </div>
+    </li>
+  );
+}
+
 export function MediaList({
   detail,
 }: {
@@ -331,41 +378,34 @@ export function MediaList({
   const media = [...detail.mediaAssets].sort(
     (a, b) => a.displayOrder - b.displayOrder,
   );
+  const [results, setResults] = React.useState<Record<string, boolean>>({});
+  const onState = React.useCallback((id: string, ok: boolean) => setResults((r) => (r[id] === ok ? r : { ...r, [id]: ok })), []);
+  const blocked = Object.values(results).filter((ok) => !ok).length;
   return (
     <SectionCard>
       <PanelTitle
         title="Media"
-        description="Media files belong to the seller; admins usually cannot download them because files are owner-scoped."
+        description={`${media.length} photo${media.length === 1 ? "" : "s"} attached by the seller.`}
       />
       {media.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No media attached. Publication requires a valid primary image.
         </p>
       ) : (
-        <ul className="divide-y divide-border rounded-lg border border-border">
-          {media.map((m) => (
-            <li
-              key={m.listingMediaAssetId}
-              className="flex flex-wrap items-center gap-3 px-4 py-3"
-            >
-              <span className="flex size-8 items-center justify-center rounded-md bg-surface-muted [&_svg]:size-5">
-                <ImageIcon />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <span>#{m.displayOrder}</span>
-                  {m.isPrimary && (
-                    <Badge tone="primary">
-                      <StarIcon className="size-3" weight="fill" /> Primary
-                    </Badge>
-                  )}
-                </div>
-                <IdText value={m.fileAssetId} />
-              </div>
-              <FileLink fileId={m.fileAssetId} />
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+            {media.map((m) => (
+              <MediaTile key={m.listingMediaAssetId} fileId={m.fileAssetId} isPrimary={m.isPrimary} order={m.displayOrder} onState={onState} />
+            ))}
+          </ul>
+          {blocked > 0 && (
+            <p className="mt-3 rounded-lg bg-surface-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
+              {blocked === media.length ? "These photos" : `${blocked} photo${blocked === 1 ? "" : "s"}`} can&apos;t be previewed: the backend only lets the uploader
+              (the seller) open a file until the listing is live, so admins can&apos;t see photos while reviewing. Reported to the backend team as
+              C4 (admin read access to listing files).
+            </p>
+          )}
+        </>
       )}
     </SectionCard>
   );
