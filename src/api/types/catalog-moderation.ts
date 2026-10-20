@@ -942,3 +942,65 @@ export interface ListingMediaResponse {
   rowVersion: RowVersion;
   media: ListingMediaItemResponse[];
 }
+
+// ---------------------------------------------------------------------------------------------
+// Admin all-listings (F2-A): GET /api/v1/admin/catalog/listings, permission catalog:listings:view.
+// C# Contracts.Listings.AdminListingQuery / AdminListingItemDto / AdminListingListResponse (enveloped).
+// ---------------------------------------------------------------------------------------------
+
+/** Aggregate listing state (LISTING.Status). Anything else → 400 INVALID_STATUS. */
+export type AdminListingStatus = 'DRAFT' | 'PUBLISHED' | 'SUSPENDED' | 'EXPIRED' | 'ARCHIVED';
+/** Candidate / active version state. Anything else → 400 INVALID_MODERATION_STATUS. */
+export type AdminListingModerationStatus =
+  | 'DRAFT'
+  | 'UNDER_REVIEW'
+  | 'CHANGES_REQUIRED'
+  | 'APPROVED'
+  | 'INSPECTION_REQUIRED'
+  | 'REJECTED'
+  | 'PUBLISHED'
+  | 'SUPERSEDED'
+  | 'ARCHIVED';
+export type AdminListingSort = 'CreatedAtUtcDesc' | 'CreatedAtUtcAsc' | 'UpdatedAtUtcDesc' | 'UpdatedAtUtcAsc' | 'TitleAsc' | 'TitleDesc';
+
+export interface AdminListingQuery {
+  page?: number; // 1-based; > 100000 → 400 INVALID_PAGE
+  pageSize?: number; // default 20, max 100
+  status?: AdminListingStatus;
+  moderationStatus?: AdminListingModerationStatus;
+  sellerId?: Guid;
+  categoryId?: Guid;
+  /** Title, LST-XXXXXXXX listing number, or exact listing GUID; max 255 chars. */
+  search?: string;
+  sort?: AdminListingSort;
+}
+
+export interface AdminListingItem {
+  listingId: Guid;
+  sellerId: Guid;
+  /** Display reference only (LST- + first 8 of listingId); always act on listingId. */
+  listingNumber: string;
+  title: string;
+  categoryId: Guid | null;
+  categoryName: string | null;
+  status: AdminListingStatus | string;
+  currentDraftVersionId: Guid | null;
+  currentDraftVersionStatus: AdminListingModerationStatus | string | null;
+  publishedVersionId: Guid | null;
+  primaryFileAssetId: Guid | null;
+  requiresPhysicalInspection: boolean;
+  /** Candidate version is APPROVED and needs an admin to publish it (first time or replacement). */
+  isApprovedAwaitingPublication: boolean;
+  isApprovedAwaitingInitialPublication: boolean;
+  isApprovedAwaitingReplacementPublication: boolean;
+  createdAtUtc: IsoDateTime;
+  updatedAtUtc: IsoDateTime | null;
+  publishedAtUtc: IsoDateTime | null;
+}
+
+export interface AdminListingListResponse {
+  items: AdminListingItem[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}

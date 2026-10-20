@@ -15,7 +15,10 @@ import type {
   RowVersion,
   SuspendListingRequest,
   SuspendListingResponse,
+  AdminListingListResponse,
+  AdminListingQuery,
 } from "@/api/types/catalog-moderation";
+import { unwrapData, type Envelope } from "@/lib/api/envelope";
 
 /**
  * catalog-listing admin moderation + publication (/api/v1/admin/catalog/listings/*).
@@ -28,6 +31,24 @@ const base = "/api/v1/admin/catalog/listings";
 const versionPath = (listingId: Guid, versionId: Guid) => `${base}/${seg(listingId)}/versions/${seg(versionId)}`;
 
 export const moderationService = {
+  /** F2-A: every listing from every seller in any state (server-paginated). */
+  allListings: async (query: AdminListingQuery, signal?: AbortSignal) =>
+    unwrapData<AdminListingListResponse>(
+      await http.get<Envelope<AdminListingListResponse>>(base, {
+        signal,
+        query: {
+          page: query.page,
+          pageSize: query.pageSize,
+          status: query.status,
+          moderationStatus: query.moderationStatus,
+          sellerId: query.sellerId,
+          categoryId: query.categoryId,
+          search: query.search,
+          sort: query.sort,
+        },
+      }),
+    ),
+
   /** Server-paginated; only current draft versions with status UNDER_REVIEW, oldest first. */
   queue: (query: ModerationQueueQuery, signal?: AbortSignal) =>
     http.get<ListingModerationQueueResponse>(`${base}/moderation/queue`, {

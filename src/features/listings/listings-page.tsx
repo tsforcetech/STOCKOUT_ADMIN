@@ -1,6 +1,6 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { ArrowRightIcon, MagnifyingGlassIcon, PackageIcon, XIcon } from "@phosphor-icons/react";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard, Toolbar, RefreshButton, RowAction } from "@/components/common/section-card";
@@ -10,8 +10,10 @@ import { ExportButton } from "@/components/common/export-button";
 import { DataTable } from "@/components/tables/data-table";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/misc";
-import { RequirePermission } from "@/lib/auth/guards";
+import { Badge, Tabs, TabsList, TabsTrigger } from "@/components/ui/misc";
+import { PermissionDenied } from "@/components/feedback/states";
+import { useAccess } from "@/lib/auth/use-access";
+import { AllListings } from "./all-listings";
 import { useUrlState } from "@/hooks/use-url-state";
 import { PERMISSIONS as P } from "@/api/types/user-organization";
 import type { ListingModerationQueueItem, ModerationQueueQuery } from "@/api/types/catalog-moderation";
@@ -24,7 +26,7 @@ export const reviewPath = (item: { listingId: string; listingVersionId: string }
 
 const DEFAULTS = { page: 1, pageSize: 20, inspection: "", from: "", to: "", category: "", seller: "" };
 
-function ListingsContent() {
+function ReviewQueue() {
   const navigate = useNavigate();
   const [state, setState] = useUrlState(DEFAULTS);
   const sellerNames = useSellerNames();
@@ -117,12 +119,6 @@ function ListingsContent() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="StockOut administration"
-        title="Listing moderation"
-        description="Review listing versions submitted by sellers, oldest first."
-        actions={<ExportButton onExport={exportRows} disabled={!items.length} />}
-      />
       <SectionCard>
         <Toolbar
           left={
@@ -149,6 +145,7 @@ function ListingsContent() {
                   <XIcon /> Clear filters
                 </Button>
               )}
+              <ExportButton onExport={exportRows} disabled={!items.length} />
               <RefreshButton onClick={() => queue.refetch()} spinning={queue.isFetching} />
             </>
           }
@@ -184,8 +181,8 @@ function ListingsContent() {
         />
         <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto]">
           <Notice>
-            This queue only contains versions currently <strong>under review</strong>. The backend has no admin endpoint that lists all listings or a listing's versions,
-            so published or suspended listings are reached from a version's review page (or by ID below).
+            This queue holds versions currently <strong>under review</strong>, oldest first, with price and waiting time. Every other listing, including ones
+            ready to publish, is under <strong>All listings</strong>. You can also open a version by ID.
           </Notice>
           <form
             className="flex flex-col gap-2 sm:flex-row sm:items-center"
@@ -206,10 +203,32 @@ function ListingsContent() {
   );
 }
 
+const TABS = [
+  { value: "all", label: "All listings", permission: P.CATALOG_LISTINGS_VIEW },
+  { value: "queue", label: "Review queue", permission: P.CATALOG_LISTINGS_REVIEW },
+] as const;
+
 export default function ListingsPage() {
+  const { can } = useAccess();
+  const [params, setParams] = useSearchParams();
+  const allowed = TABS.filter((t) => can(t.permission));
+  const tab = allowed.find((t) => t.value === params.get("tab"))?.value ?? allowed[0]?.value;
+  if (!tab) return <PermissionDenied description="Listings need the catalog:listings:view or catalog:listings:review permission." />;
   return (
-    <RequirePermission permission={P.CATALOG_LISTINGS_REVIEW}>
-      <ListingsContent />
-    </RequirePermission>
+    <>
+      <PageHeader eyebrow="StockOut administration" title="Listings" description="Every listing from every seller: review submissions, publish approved listings and manage what's live." />
+      {allowed.length > 1 && (
+        <Tabs value={tab} onValueChange={(t) => setParams({ tab: t })} className="mb-4">
+          <TabsList aria-label="Listings views">
+            {allowed.map((t) => (
+              <TabsTrigger key={t.value} value={t.value}>
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
+      {tab === "all" ? <AllListings /> : <ReviewQueue />}
+    </>
   );
 }

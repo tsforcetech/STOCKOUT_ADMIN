@@ -69,7 +69,7 @@ export const NAV_GROUPS: NavGroup[] = [
     id: "marketplace",
     label: "Marketplace",
     items: [
-      { label: "Listings", to: "/listings", icon: ListNumbersIcon, permission: P.CATALOG_LISTINGS_REVIEW },
+      { label: "Listings", to: "/listings", icon: ListNumbersIcon, permission: { anyOf: [P.CATALOG_LISTINGS_VIEW, P.CATALOG_LISTINGS_REVIEW] } },
       { label: "Categories", to: "/catalog", icon: FoldersIcon, permission: CATALOG_VIEW },
       { label: "Price Guidance", to: "/price-guidance", icon: TagIcon, unavailable: true },
       { label: "Buyer Requests", to: "/buyer-requests", icon: UserListIcon, unavailable: true },

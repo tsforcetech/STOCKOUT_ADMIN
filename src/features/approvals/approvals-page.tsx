@@ -68,7 +68,7 @@ function ListingsTab({ enabled }: { enabled: boolean }) {
         <PreviewNote shown={items.length} total={queue.data?.totalCount} order="oldest submissions first" />
         <div className="ml-auto flex items-center gap-2">
           <RefreshButton onClick={() => queue.refetch()} spinning={queue.isFetching} />
-          <ViewAll to="/listings" label="listings awaiting review" count={queue.data?.totalCount} />
+          <ViewAll to="/listings?tab=queue" label="listings awaiting review" count={queue.data?.totalCount} />
         </div>
       </div>
       <DataTable
