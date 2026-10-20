@@ -1,10 +1,10 @@
 import * as React from "react";
 import { Link, useNavigate } from "react-router";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ClipboardTextIcon, HourglassIcon, IdentificationCardIcon, PackageIcon, SpinnerGapIcon, StorefrontIcon } from "@phosphor-icons/react";
+import { CheckIcon, ClipboardTextIcon, EyeIcon, XIcon, HourglassIcon, IdentificationCardIcon, PackageIcon, SpinnerGapIcon, StorefrontIcon } from "@phosphor-icons/react";
 import { PageHeader } from "@/components/common/page-header";
 import { StatCards, type StatItem } from "@/components/common/stat-cards";
-import { SectionCard, RefreshButton } from "@/components/common/section-card";
+import { SectionCard, RefreshButton, RowAction } from "@/components/common/section-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { EntityCell } from "@/components/common/entity-cell";
 import { DataTable } from "@/components/tables/data-table";
@@ -18,14 +18,13 @@ import { PERMISSIONS as P, type MarketplaceSellerDto } from "@/api/types/user-or
 import type { InspectionStatus, InspectionSummaryDto, ListingModerationQueueItem } from "@/api/types/catalog-moderation";
 import { formatMoney, formatNumber, humanize } from "@/lib/utils/format";
 import { useSellersQuery } from "@/features/sellers/sellers-page";
+import { canReviewKyc as kycPending, useSellerReview } from "@/features/sellers/seller-review";
 import { useModerationQueueQuery } from "@/features/listings/queries";
 import { useInspectionQueueQuery } from "@/features/inspections/queries";
 import { PersonText, ageSince, fmtUtc, shortId, useSellerNames, useUserNames } from "@/features/listings/shared";
 
 const PREVIEW_SIZE = 10;
 
-/** Same rule the sellers page uses: KYC can be decided only while PENDING and SUBMITTED/UNDER_REVIEW. */
-const kycPending = (s: MarketplaceSellerDto) => s.verificationStatus === "PENDING" && (s.onboardingStatus === "SUBMITTED" || s.onboardingStatus === "UNDER_REVIEW");
 
 function ViewAll({ to, label, count }: { to: string; label: string; count?: number }) {
   return (
@@ -92,6 +91,8 @@ function ListingsTab({ enabled }: { enabled: boolean }) {
 
 function SellersTab({ enabled }: { enabled: boolean }) {
   const query = useSellersQuery(enabled);
+  const review = useSellerReview();
+  const { act, allowed, openReview } = review;
   const pending = React.useMemo(
     () => (query.data ?? []).filter(kycPending).sort((a, b) => (a.submittedAtUtc ?? "").localeCompare(b.submittedAtUtc ?? "")),
     [query.data],
@@ -103,8 +104,32 @@ function SellersTab({ enabled }: { enabled: boolean }) {
       { id: "onboarding", header: "Onboarding", cell: ({ row }) => <StatusBadge value={row.original.onboardingStatus} /> },
       { id: "submitted", header: "Submitted", cell: ({ row }) => fmtUtc(row.original.submittedAtUtc) },
       { id: "waiting", header: "Waiting", cell: ({ row }) => ageSince(row.original.submittedAtUtc) },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => {
+          const s = row.original;
+          return (
+            <div className="flex justify-end gap-1.5">
+              <RowAction label="Review KYC" onClick={() => openReview(s)}>
+                <EyeIcon />
+              </RowAction>
+              {allowed("REJECT", s) && (
+                <RowAction label="Reject KYC" tone="danger" onClick={() => act("REJECT", s)}>
+                  <XIcon />
+                </RowAction>
+              )}
+              {allowed("APPROVE", s) && (
+                <RowAction label="Approve KYC" tone="success" onClick={() => act("APPROVE", s)}>
+                  <CheckIcon />
+                </RowAction>
+              )}
+            </div>
+          );
+        },
+      },
     ],
-    [],
+    [act, allowed, openReview],
   );
   if (!enabled) return <PermissionDenied description="Seller KYC requires the sellers.view permission." />;
   const preview = pending.slice(0, PREVIEW_SIZE);
@@ -125,11 +150,13 @@ function SellersTab({ enabled }: { enabled: boolean }) {
         isLoading={query.isLoading}
         error={query.error}
         onRetry={() => query.refetch()}
+        onRowClick={(s) => openReview(s)}
         clientSorting={false}
         pageSizeOptions={[PREVIEW_SIZE]}
         emptyTitle="No sellers awaiting KYC"
-        emptyDescription="Sellers appear here after they submit onboarding for verification. Approve or reject them on the Sellers page."
+        emptyDescription="Sellers appear here after they submit onboarding for verification."
       />
+      {review.element}
     </>
   );
 }

@@ -12,12 +12,10 @@ import { DataTable } from "@/components/tables/data-table";
 import { SearchInput } from "@/components/tables/table-toolbar";
 import { NativeSelect } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/misc";
-import { ConfirmDialog } from "@/components/ui/dialog";
 import { RequirePermission } from "@/lib/auth/guards";
-import { useAccess } from "@/lib/auth/use-access";
 import { useUrlState } from "@/hooks/use-url-state";
-import { useApiMutation } from "@/hooks/use-api-mutation";
 import { sellersService } from "@/services/sellers.service";
+import { canReviewKyc as canReview, sellersKeys, useSellerReview } from "./seller-review";
 import { PERMISSIONS as P, type MarketplaceSellerDto } from "@/api/types/user-organization";
 import { formatDateTime, formatNumber, humanize } from "@/lib/utils/format";
 import { downloadCsv, toCsv } from "@/lib/utils/csv";
@@ -47,22 +45,17 @@ function matchesTab(s: MarketplaceSellerDto, tab: TabValue): boolean {
   }
 }
 
-/** verify/reject are allowed only while PENDING and SUBMITTED/UNDER_REVIEW (backend state machine). */
-const canReview = (s: MarketplaceSellerDto) => s.verificationStatus === "PENDING" && (s.onboardingStatus === "SUBMITTED" || s.onboardingStatus === "UNDER_REVIEW");
-
-type PendingAction = { kind: "APPROVE" | "REJECT" | "SUSPEND"; seller: MarketplaceSellerDto } | null;
-
-export const sellersKeys = { all: ["sellers"] as const };
+export { sellersKeys };
 
 export function useSellersQuery(enabled = true) {
   return useQuery({ queryKey: sellersKeys.all, queryFn: ({ signal }) => sellersService.list(signal), enabled });
 }
 
 function SellersContent() {
-  const { can } = useAccess();
+  const review = useSellerReview();
+  const { act, allowed } = review;
   const [state, setState] = useUrlState({ tab: "all", q: "", type: "" });
   const [selection, setSelection] = React.useState<RowSelectionState>({});
-  const [pending, setPending] = React.useState<PendingAction>(null);
   const query = useSellersQuery();
   const sellers = React.useMemo(() => query.data ?? [], [query.data]);
 
@@ -75,14 +68,6 @@ function SellersContent() {
         (!q || (s.displayName ?? "").toLowerCase().includes(q) || s.sellerId.toLowerCase().includes(q)),
     );
   }, [sellers, state.tab, state.type, state.q]);
-
-  const action = useApiMutation({
-    mutationFn: (a: NonNullable<PendingAction>) =>
-      a.kind === "SUSPEND" ? sellersService.suspend(a.seller.sellerId, a.seller.rowVersion) : sellersService.review(a.seller.sellerId, a.kind, a.seller.rowVersion),
-    invalidate: [sellersKeys.all],
-    successMessage: (_d, a) => `${a.seller.displayName ?? "Seller"} ${a.kind === "APPROVE" ? "verified" : a.kind === "REJECT" ? "rejected" : "suspended"}.`,
-    onSuccess: () => setPending(null),
-  });
 
   const selectedRows = filtered.filter((s) => selection[s.sellerId]);
 
@@ -120,21 +105,20 @@ function SellersContent() {
         enableSorting: false,
         cell: ({ row }) => {
           const s = row.original;
-          const reviewable = canReview(s);
           return (
             <div className="flex justify-end gap-1.5">
-              {can(P.SELLERS_REJECT) && reviewable && (
-                <RowAction label="Reject KYC" tone="danger" onClick={() => setPending({ kind: "REJECT", seller: s })}>
+              {allowed("REJECT", s) && (
+                <RowAction label="Reject KYC" tone="danger" onClick={() => act("REJECT", s)}>
                   <XIcon />
                 </RowAction>
               )}
-              {can(P.SELLERS_VERIFY) && reviewable && (
-                <RowAction label="Approve KYC" tone="success" onClick={() => setPending({ kind: "APPROVE", seller: s })}>
+              {allowed("APPROVE", s) && (
+                <RowAction label="Approve KYC" tone="success" onClick={() => act("APPROVE", s)}>
                   <CheckIcon />
                 </RowAction>
               )}
-              {can(P.SELLERS_SUSPEND) && s.status === "ACTIVE" && (
-                <RowAction label="Suspend seller" tone="danger" onClick={() => setPending({ kind: "SUSPEND", seller: s })}>
+              {allowed("SUSPEND", s) && (
+                <RowAction label="Suspend seller" tone="danger" onClick={() => act("SUSPEND", s)}>
                   <ProhibitIcon />
                 </RowAction>
               )}
@@ -143,7 +127,7 @@ function SellersContent() {
         },
       },
     ],
-    [can],
+    [act, allowed],
   );
 
   const count = (pred: (s: MarketplaceSellerDto) => boolean) => formatNumber(sellers.filter(pred).length);
@@ -205,31 +189,17 @@ function SellersContent() {
             selectable
             rowSelection={selection}
             onRowSelectionChange={setSelection}
+            onRowClick={(s) => review.openReview(s)}
             emptyTitle={sellers.length ? "No sellers match these filters" : "No sellers yet"}
             emptyDescription={sellers.length ? "Try another tab or clear the search." : "Sellers appear here once they register on the marketplace."}
           />
           <p className="mt-3 text-xs text-muted-foreground">
-            The seller list endpoint returns status fields only; contact details, documents and GMV are not exposed to admins by the current API.
+            Click a seller to open their KYC review. The seller list endpoint returns status fields only; contact details, documents and GMV are not exposed to admins by the current API.
           </p>
         </div>
       </SectionCard>
 
-      <ConfirmDialog
-        open={pending !== null}
-        onOpenChange={(o) => !o && setPending(null)}
-        title={pending?.kind === "APPROVE" ? "Approve seller KYC?" : pending?.kind === "REJECT" ? "Reject seller KYC?" : "Suspend seller?"}
-        description={
-          pending?.kind === "APPROVE"
-            ? `${pending.seller.displayName ?? "This seller"} will be marked verified and onboarding completed.`
-            : pending?.kind === "REJECT"
-              ? `${pending?.seller.displayName ?? "This seller"} will be marked rejected and returned to draft so they can resubmit.`
-              : `${pending?.seller.displayName ?? "This seller"} will be suspended. There is currently no API to reinstate a suspended seller.`
-        }
-        confirmLabel={pending?.kind === "APPROVE" ? "Approve" : pending?.kind === "REJECT" ? "Reject" : "Suspend"}
-        tone={pending?.kind === "APPROVE" ? "primary" : "danger"}
-        loading={action.isPending}
-        onConfirm={() => pending && action.mutate(pending)}
-      />
+      {review.element}
     </>
   );
 }

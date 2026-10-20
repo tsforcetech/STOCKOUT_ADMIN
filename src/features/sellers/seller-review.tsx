@@ -1,0 +1,162 @@
+import * as React from "react";
+import { CheckIcon, InfoIcon, ProhibitIcon, XIcon } from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog, Dialog, DialogContent } from "@/components/ui/dialog";
+import { DetailList } from "@/components/common/page-header";
+import { StatusBadge } from "@/components/common/status-badge";
+import { IdText } from "@/components/common/copy-button";
+import { useAccess } from "@/lib/auth/use-access";
+import { useApiMutation } from "@/hooks/use-api-mutation";
+import { sellersService } from "@/services/sellers.service";
+import { PERMISSIONS as P, type MarketplaceSellerDto } from "@/api/types/user-organization";
+import { formatDateTime, humanize } from "@/lib/utils/format";
+import { ageSince } from "@/features/listings/shared";
+
+/** verify/reject are allowed only while PENDING and SUBMITTED/UNDER_REVIEW (backend state machine). */
+export const canReviewKyc = (s: MarketplaceSellerDto) => s.verificationStatus === "PENDING" && (s.onboardingStatus === "SUBMITTED" || s.onboardingStatus === "UNDER_REVIEW");
+
+export type SellerActionKind = "APPROVE" | "REJECT" | "SUSPEND";
+type PendingAction = { kind: SellerActionKind; seller: MarketplaceSellerDto } | null;
+
+export const sellersKeys = { all: ["sellers"] as const };
+
+/**
+ * KYC review for one seller, shared by the Sellers page and the Approvals queue: a review panel with everything
+ * the admin API returns, plus approve / reject / suspend behind a confirmation.
+ */
+export function useSellerReview() {
+  const { can } = useAccess();
+  const [viewing, setViewing] = React.useState<MarketplaceSellerDto | null>(null);
+  const [pending, setPending] = React.useState<PendingAction>(null);
+
+  const action = useApiMutation({
+    mutationFn: (a: NonNullable<PendingAction>) =>
+      a.kind === "SUSPEND" ? sellersService.suspend(a.seller.sellerId, a.seller.rowVersion) : sellersService.review(a.seller.sellerId, a.kind, a.seller.rowVersion),
+    invalidate: [sellersKeys.all],
+    successMessage: (_d, a) => `${a.seller.displayName ?? "Seller"} ${a.kind === "APPROVE" ? "verified" : a.kind === "REJECT" ? "rejected" : "suspended"}.`,
+    onSuccess: () => {
+      setPending(null);
+      setViewing(null);
+    },
+  });
+
+  const allowed = React.useCallback(
+    (kind: SellerActionKind, s: MarketplaceSellerDto) =>
+      kind === "APPROVE" ? can(P.SELLERS_VERIFY) && canReviewKyc(s) : kind === "REJECT" ? can(P.SELLERS_REJECT) && canReviewKyc(s) : can(P.SELLERS_SUSPEND) && s.status === "ACTIVE",
+    [can],
+  );
+
+  const act = React.useCallback((kind: SellerActionKind, seller: MarketplaceSellerDto) => setPending({ kind, seller }), []);
+
+  const name = pending?.seller.displayName || "This seller";
+  const element = (
+    <>
+      <Dialog open={viewing !== null} onOpenChange={(o) => !o && setViewing(null)}>
+        {viewing && (
+          <DialogContent
+            size="lg"
+            title={viewing.displayName || "Unnamed seller"}
+            description={`${humanize(viewing.organizationType)} seller · KYC review`}
+            footer={
+              <>
+                {allowed("SUSPEND", viewing) && (
+                  <Button variant="secondary" className="mr-auto" onClick={() => act("SUSPEND", viewing)}>
+                    <ProhibitIcon /> Suspend
+                  </Button>
+                )}
+                {allowed("REJECT", viewing) && (
+                  <Button variant="danger" onClick={() => act("REJECT", viewing)}>
+                    <XIcon /> Reject KYC
+                  </Button>
+                )}
+                {allowed("APPROVE", viewing) && (
+                  <Button onClick={() => act("APPROVE", viewing)}>
+                    <CheckIcon /> Approve KYC
+                  </Button>
+                )}
+                {!allowed("APPROVE", viewing) && !allowed("REJECT", viewing) && !allowed("SUSPEND", viewing) && (
+                  <Button variant="secondary" onClick={() => setViewing(null)}>
+                    Close
+                  </Button>
+                )}
+              </>
+            }
+          >
+            <SellerReviewBody seller={viewing} canDecide={can(P.SELLERS_VERIFY) || can(P.SELLERS_REJECT)} />
+          </DialogContent>
+        )}
+      </Dialog>
+      <ConfirmDialog
+        open={pending !== null}
+        onOpenChange={(o) => !o && setPending(null)}
+        title={pending?.kind === "APPROVE" ? "Approve seller KYC?" : pending?.kind === "REJECT" ? "Reject seller KYC?" : "Suspend seller?"}
+        description={
+          pending?.kind === "APPROVE"
+            ? `${name} will be marked verified and onboarding completed. They can then publish listings.`
+            : pending?.kind === "REJECT"
+              ? `${name} will be marked rejected and returned to draft so they can fix their details and resubmit.`
+              : `${name} will be suspended. There is currently no API to reinstate a suspended seller.`
+        }
+        confirmLabel={pending?.kind === "APPROVE" ? "Approve" : pending?.kind === "REJECT" ? "Reject" : "Suspend"}
+        tone={pending?.kind === "APPROVE" ? "primary" : "danger"}
+        loading={action.isPending}
+        onConfirm={() => pending && action.mutate(pending)}
+      />
+    </>
+  );
+
+  return { openReview: setViewing, act, allowed, element };
+}
+
+function SellerReviewBody({ seller: s, canDecide }: { seller: MarketplaceSellerDto; canDecide: boolean }) {
+  const reviewable = canReviewKyc(s);
+  return (
+    <div className="space-y-6">
+      {reviewable ? (
+        <p className="rounded-md border border-action-border/50 bg-action-soft px-3 py-2 text-sm text-foreground">
+          Submitted for verification {ageSince(s.submittedAtUtc)} ago.{canDecide ? " Approve to let them sell, or reject to send them back to draft." : ""}
+        </p>
+      ) : (
+        <p className="rounded-md bg-surface-muted px-3 py-2 text-sm text-muted-foreground">
+          {s.verificationStatus === "VERIFIED"
+            ? "This seller is already verified."
+            : s.verificationStatus === "REJECTED"
+              ? "KYC was rejected. The seller can resubmit from their seller portal."
+              : "This seller hasn't submitted onboarding yet, so there is nothing to decide."}
+        </p>
+      )}
+      <section>
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Seller</h3>
+        <DetailList
+          items={[
+            { label: "Display name", value: s.displayName || "—" },
+            { label: "Type", value: humanize(s.organizationType) },
+            { label: "Seller ID", value: <IdText value={s.sellerId} />, full: true },
+          ]}
+        />
+      </section>
+      <section>
+        <h3 className="mb-3 text-sm font-semibold text-foreground">Status</h3>
+        <DetailList
+          columns={3}
+          items={[
+            { label: "KYC", value: <StatusBadge value={s.verificationStatus} /> },
+            { label: "Onboarding", value: <StatusBadge value={s.onboardingStatus} /> },
+            { label: "Account", value: <StatusBadge value={s.status} /> },
+            { label: "Submitted", value: formatDateTime(s.submittedAtUtc) },
+            { label: "Verified", value: formatDateTime(s.verifiedAtUtc) },
+            { label: "Rejected", value: formatDateTime(s.rejectedAtUtc) },
+            ...(s.suspendedAtUtc ? [{ label: "Suspended", value: formatDateTime(s.suspendedAtUtc) }] : []),
+          ]}
+        />
+      </section>
+      <p className="flex items-start gap-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
+        <InfoIcon className="mt-0.5 size-4 shrink-0" />
+        <span>
+          Legal name, trade licence number, contact details and uploaded KYC documents aren&apos;t available to admins yet: the admin seller API returns status fields only,
+          and the seller documents API is limited to the seller&apos;s own team. They will show here once the backend adds an admin seller detail endpoint.
+        </span>
+      </p>
+    </div>
+  );
+}
