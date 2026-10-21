@@ -1,6 +1,7 @@
 import { http } from "@/lib/api/client";
 import type {
   Guid,
+  ListingMediaDownloadUrlResponse,
   ListingModerationDetailResponse,
   ListingModerationQueueResponse,
   ListingPublicationHistoryResponse,
@@ -67,6 +68,10 @@ export const moderationService = {
   /** Works for any version of the listing; the only source of the listing rowVersion. */
   detail: (listingId: Guid, versionId: Guid, signal?: AbortSignal) =>
     http.get<ListingModerationDetailResponse>(`${versionPath(listingId, versionId)}/moderation`, { signal }),
+
+  /** F2-E: fresh reviewer URL for one photo (the detail's URLs expire after 15 minutes). */
+  mediaDownloadUrl: (listingId: Guid, versionId: Guid, listingMediaAssetId: Guid) =>
+    http.get<ListingMediaDownloadUrlResponse>(`${versionPath(listingId, versionId)}/media/${seg(listingMediaAssetId)}/download-url`),
 
   decide: (listingId: Guid, versionId: Guid, body: ModerationDecisionRequest) =>
     http.post<ModerationDecisionResponse>(`${versionPath(listingId, versionId)}/moderation/decide`, body),

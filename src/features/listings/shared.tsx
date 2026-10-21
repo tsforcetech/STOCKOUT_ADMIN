@@ -203,6 +203,64 @@ export function PersonText({ id, names }: { id: string | null | undefined; names
  * File links. inventory-media files are owner-scoped: an admin can only get a download URL for a
  * file they uploaded, so 403/404 is an expected outcome and is explained inline.
  * ---------------------------------------------------------------------------------------------- */
+/** True while a presigned URL is still usable (with a minute of margin). Unknown expiry counts as usable. */
+export function urlFresh(url: string | null | undefined, expiresAtUtc: string | null | undefined): url is string {
+  if (!url) return false;
+  if (!expiresAtUtc) return true;
+  const t = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(expiresAtUtc) ? expiresAtUtc : `${expiresAtUtc}Z`);
+  return Number.isNaN(t) || t - Date.now() > 60_000;
+}
+
+/**
+ * Opens a reviewer file through a short-lived presigned URL (F2-E). Uses the URL the list already returned while it
+ * is fresh, otherwise asks `refresh` for a new one. The tab opens synchronously so pop-up blockers allow it.
+ */
+export function SignedFileLink({
+  url,
+  expiresAtUtc,
+  refresh,
+  label = "Open",
+}: {
+  url: string | null | undefined;
+  expiresAtUtc?: string | null;
+  refresh: () => Promise<{ downloadUrl: string | null }>;
+  label?: string;
+}) {
+  const [state, setState] = React.useState<{ status: "idle" | "loading" | "denied" | "missing" | "error"; message?: string }>({ status: "idle" });
+  const open = async () => {
+    if (urlFresh(url, expiresAtUtc)) {
+      window.open(url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    const tab = window.open("", "_blank");
+    setState({ status: "loading" });
+    try {
+      const res = await refresh();
+      if (!res.downloadUrl) throw new Error("No download link was returned.");
+      if (tab) {
+        tab.opener = null;
+        tab.location.href = res.downloadUrl;
+      } else window.open(res.downloadUrl, "_blank", "noopener,noreferrer");
+      setState({ status: "idle" });
+    } catch (error) {
+      tab?.close();
+      if (isApiError(error) && error.status === 403) setState({ status: "denied" });
+      else if (isApiError(error) && error.status === 404) setState({ status: "missing" });
+      else setState({ status: "error", message: isApiError(error) || error instanceof Error ? error.message : "Could not get a download link." });
+    }
+  };
+  return (
+    <span className="inline-flex flex-wrap items-center gap-2">
+      <Button variant="link" size="sm" onClick={() => void open()} loading={state.status === "loading"}>
+        {label}
+      </Button>
+      {state.status === "denied" && <span className="text-xs text-muted-foreground">You don&apos;t have access to this file.</span>}
+      {state.status === "missing" && <span className="text-xs text-muted-foreground">File not found (deleted or not uploaded yet).</span>}
+      {state.status === "error" && <span className="text-xs text-danger-soft-foreground">{state.message}</span>}
+    </span>
+  );
+}
+
 export function FileLink({ fileId, presignedUrl, label = "Open" }: { fileId: string; presignedUrl?: string | null; label?: string }) {
   const [state, setState] = React.useState<{ status: "idle" | "loading" | "denied" | "missing" | "error"; message?: string }>({ status: "idle" });
   if (presignedUrl) {

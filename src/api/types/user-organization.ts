@@ -790,3 +790,29 @@ export const PERMISSIONS = {
 
 /** Union of all seeded permission codes. */
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
+
+/** AdminSellerDocumentResponse: GET /api/v1/admin/marketplace/sellers/{sellerId}/documents (sellers.view; enveloped) */
+export interface AdminSellerDocumentResponse {
+  sellerDocumentId: Guid;
+  sellerId: Guid;
+  documentType: string;
+  fileAssetId: Guid;
+  documentNumber: string | null;
+  issuedAt: IsoDateTime | null;
+  expiresAt: IsoDateTime | null;
+  verificationStatus: string;
+  createdAtUtc: IsoDateTime;
+  /** short-lived (15 min) presigned URL; null when it couldn't be issued */
+  downloadUrl: string | null;
+  expiresAtUtc: IsoDateTime | null;
+}
+
+/** AdminSellerDocumentDownloadUrlResponse: GET …/sellers/{sellerId}/documents/{documentId}/download-url (sellers.view; enveloped) */
+export interface AdminSellerDocumentDownloadUrlResponse {
+  sellerDocumentId: Guid;
+  sellerId: Guid;
+  fileAssetId: Guid;
+  documentType: string;
+  downloadUrl: string | null;
+  expiresAtUtc: IsoDateTime | null;
+}

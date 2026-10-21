@@ -12,7 +12,7 @@ import type { InspectionDetailDto, InspectionEvidenceDto, InspectionEvidenceType
 import { INSPECTION_EVIDENCE_FILE_PURPOSE } from "@/api/types/catalog-moderation";
 import { inspectionsService } from "@/services/inspections.service";
 import { filesService, FILE_LIMITS, isAllowedFileType } from "@/services/files.service";
-import { ApiErrorNotice, FileLink, Notice, PanelTitle, PersonText, fmtUtc, isConflict, useUserNames } from "@/features/listings/shared";
+import { ApiErrorNotice, Notice, SignedFileLink, PanelTitle, PersonText, fmtUtc, isConflict, useUserNames } from "@/features/listings/shared";
 import { inspectionKeys } from "../queries";
 
 const limit = FILE_LIMITS[INSPECTION_EVIDENCE_FILE_PURPOSE];
@@ -49,7 +49,11 @@ export function EvidencePanel({ inspection, editable }: { inspection: Inspection
         <ul className="mb-4 divide-y divide-border rounded-lg border border-border">
           {evidence.map((e) => (
             <li key={e.inspectionEvidenceId} className="flex flex-wrap items-start gap-3 px-4 py-3">
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-muted [&_svg]:size-5">{e.evidenceType === "IMAGE" ? <ImageIcon /> : <FileIcon />}</span>
+              {e.evidenceType === "IMAGE" && e.downloadUrl ? (
+                <img src={e.downloadUrl} alt={e.description || "Evidence photo"} loading="lazy" className="size-14 shrink-0 rounded-md bg-surface-muted object-cover" />
+              ) : (
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-muted [&_svg]:size-5">{e.evidenceType === "IMAGE" ? <ImageIcon /> : <FileIcon />}</span>
+              )}
               <div className="min-w-0 flex-1 text-sm">
                 <p className="break-words">{e.description || (e.evidenceType === "IMAGE" ? "Image" : "Document")}</p>
                 <p className="text-xs text-muted-foreground">
@@ -60,7 +64,7 @@ export function EvidencePanel({ inspection, editable }: { inspection: Inspection
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <FileLink fileId={e.fileAssetId} presignedUrl={e.downloadUrl} />
+                <SignedFileLink url={e.downloadUrl} refresh={() => inspectionsService.evidenceDownloadUrl(inspection.inspectionId, e.inspectionEvidenceId)} />
                 {editable && (
                   <RowAction label="Remove evidence" tone="danger" onClick={() => { remove.reset(); setRemoving(e); }}>
                     <TrashIcon />
@@ -70,9 +74,6 @@ export function EvidencePanel({ inspection, editable }: { inspection: Inspection
             </li>
           ))}
         </ul>
-      )}
-      {evidence.some((e) => !e.downloadUrl) && (
-        <p className="mb-4 text-xs text-muted-foreground">Where the server could not issue a preview link, “Open” requests one; files are owner-scoped, so only the uploader can download them.</p>
       )}
       {editable ? <UploadEvidence inspection={inspection} nextOrder={evidence.length} /> : null}
 

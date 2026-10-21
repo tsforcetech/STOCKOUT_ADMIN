@@ -11,8 +11,10 @@ import { formatMoney, humanize } from "@/lib/utils/format";
 import type {
   CandidateAttributeDto,
   ListingModerationDetailResponse,
+  MediaAssetDto,
 } from "@/api/types/catalog-moderation";
-import { FileLink, PanelTitle, fmtUtc, fmtUtcDate } from "../shared";
+import { PanelTitle, SignedFileLink, fmtUtc, fmtUtcDate, urlFresh } from "../shared";
+import { moderationService } from "@/services/moderation.service";
 
 interface Row {
   label: string;
@@ -324,27 +326,60 @@ export function AttributesComparison({
   );
 }
 
-/** Photo through the public route: works once the listing is live; owner-scoped otherwise (backend C4). */
-function MediaTile({ fileId, isPrimary, order, onState }: { fileId: string; isPrimary: boolean; order: number; onState: (id: string, ok: boolean) => void }) {
+/**
+ * Reviewer photo (F2-E). Tries the detail's short-lived URL, then a freshly issued one (they expire after 15 minutes),
+ * then the public route (works once the listing is live). Reports whether it could be shown.
+ */
+function MediaTile({ listingId, versionId, media: m, onState }: { listingId: string; versionId: string; media: MediaAssetDto; onState: (id: string, ok: boolean) => void }) {
+  const publicUrl = `${env.apiBaseUrl}/api/v1/files/${encodeURIComponent(m.fileAssetId)}/download`;
+  const [src, setSrc] = React.useState<string>(() => (urlFresh(m.downloadUrl, m.expiresAtUtc) ? m.downloadUrl : ""));
+  const [stage, setStage] = React.useState<"signed" | "refreshed" | "public">("signed");
   const [state, setState] = React.useState<"loading" | "ok" | "blocked">("loading");
-  const url = `${env.apiBaseUrl}/api/v1/files/${encodeURIComponent(fileId)}/download`;
+
+  const fallback = React.useCallback(
+    async (from: "signed" | "refreshed" | "public") => {
+      if (from === "signed") {
+        setStage("refreshed");
+        try {
+          const res = await moderationService.mediaDownloadUrl(listingId, versionId, m.listingMediaAssetId);
+          if (res.downloadUrl) {
+            setSrc(res.downloadUrl);
+            return;
+          }
+        } catch {
+          /* fall through to the public route */
+        }
+      }
+      if (from !== "public") {
+        setStage("public");
+        setSrc(publicUrl);
+        return;
+      }
+      setState("blocked");
+      onState(m.listingMediaAssetId, false);
+    },
+    [listingId, versionId, m.listingMediaAssetId, publicUrl, onState],
+  );
+
+  // No usable URL in the detail: ask for one straight away.
+  React.useEffect(() => {
+    if (!src && stage === "signed") void fallback("signed");
+  }, [src, stage, fallback]);
+
   return (
     <li className="overflow-hidden rounded-xl border border-border bg-surface">
       <div className="relative aspect-[4/3] bg-surface-muted">
-        {state !== "blocked" && (
-          <a href={state === "ok" ? url : undefined} target="_blank" rel="noopener noreferrer" aria-label={`Open photo ${order}`} className="block size-full">
+        {state !== "blocked" && src && (
+          <a href={state === "ok" ? src : undefined} target="_blank" rel="noopener noreferrer" aria-label={`Open photo ${m.displayOrder}`} className="block size-full">
             <img
-              src={url}
-              alt={`Listing photo ${order}`}
+              src={src}
+              alt={`Listing photo ${m.displayOrder}`}
               loading="lazy"
               onLoad={() => {
                 setState("ok");
-                onState(fileId, true);
+                onState(m.listingMediaAssetId, true);
               }}
-              onError={() => {
-                setState("blocked");
-                onState(fileId, false);
-              }}
+              onError={() => void fallback(stage)}
               className={cn("size-full object-cover transition-opacity", state === "ok" ? "opacity-100" : "opacity-0")}
             />
           </a>
@@ -352,19 +387,19 @@ function MediaTile({ fileId, isPrimary, order, onState }: { fileId: string; isPr
         {state !== "ok" && (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 px-3 text-center text-muted-foreground">
             <ImageIcon className={cn("size-7", state === "loading" && "animate-pulse")} />
-            {state === "blocked" && <span className="text-[11px] leading-4">No preview: the photo isn&apos;t public yet</span>}
+            {state === "blocked" && <span className="text-[11px] leading-4">Preview unavailable</span>}
           </span>
         )}
-        {isPrimary && (
+        {m.isPrimary && (
           <Badge tone="primary" className="absolute left-2 top-2">
             <StarIcon className="size-3" weight="fill" /> Cover
           </Badge>
         )}
-        <span className="absolute right-2 top-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">#{order}</span>
+        <span className="absolute right-2 top-2 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] font-medium text-white">#{m.displayOrder}</span>
       </div>
       <div className="flex items-center justify-between gap-2 px-3 py-2">
-        <IdText value={fileId} />
-        {state === "blocked" && <FileLink fileId={fileId} label="Try download" />}
+        <IdText value={m.fileAssetId} />
+        {state === "blocked" && <SignedFileLink url={null} refresh={() => moderationService.mediaDownloadUrl(listingId, versionId, m.listingMediaAssetId)} label="Try again" />}
       </div>
     </li>
   );
@@ -395,14 +430,13 @@ export function MediaList({
         <>
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {media.map((m) => (
-              <MediaTile key={m.listingMediaAssetId} fileId={m.fileAssetId} isPrimary={m.isPrimary} order={m.displayOrder} onState={onState} />
+              <MediaTile key={m.listingMediaAssetId} listingId={detail.candidateVersion.listingId} versionId={detail.candidateVersion.listingVersionId} media={m} onState={onState} />
             ))}
           </ul>
           {blocked > 0 && (
             <p className="mt-3 rounded-lg bg-surface-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
-              {blocked === media.length ? "These photos" : `${blocked} photo${blocked === 1 ? "" : "s"}`} can&apos;t be previewed: the backend only lets the uploader
-              (the seller) open a file until the listing is live, so admins can&apos;t see photos while reviewing. Reported to the backend team as
-              C4 (admin read access to listing files).
+              {blocked === media.length ? "These photos" : `${blocked} photo${blocked === 1 ? "" : "s"}`} couldn&apos;t be loaded. The file may have been removed, or the
+              media service didn&apos;t issue a link. Use “Try again”, or ask the seller to re-upload.
             </p>
           )}
         </>

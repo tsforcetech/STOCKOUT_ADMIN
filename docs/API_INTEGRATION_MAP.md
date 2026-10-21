@@ -44,6 +44,9 @@ running gateway. *No endpoint is marked Live: the gateway was not reachable from
 | Publication | `…/versions/{vid}/publication-eligibility`, `/publish` | GET, POST | catalog:listings:view / publish | Listing review | Integrated |
 | Publication | `…/listings/{id}/suspend`, `/republish`, `/rollback`, `/publication-history` | POST, GET | catalog:listings:suspend / publish / view | Listing review | Integrated |
 | Inspections | `/api/v1/admin/catalog/inspections/queue` | GET (paged) | inspections.view | Inspections, Approvals, Dashboard | Integrated |
+| Moderation media (F2-E) | `…/listings/{id}/versions/{vid}/media/{listingMediaAssetId}/download-url`; `mediaAssets[].downloadUrl` in the moderation detail | GET | catalog:listings:review | Listing review photos (15-min URLs, refreshed on expiry or error) | Integrated, verified live 21 Oct |
+| Seller KYC documents (F2-E) | `/api/v1/admin/marketplace/sellers/{id}/documents` (+ `/{documentId}/download-url`) | GET (enveloped) | sellers.view | Seller review panel (Sellers, Approvals) | Integrated, verified live 21 Oct |
+| Inspection evidence (F2-E) | `/api/v1/admin/catalog/inspections/{id}/evidence/{evidenceId}/download-url` | GET | admin, or the assigned inspector | Inspection evidence "Open" + photo thumbnails | Integrated; live check pending (no evidence on server yet) |
 | Inspections | `/api/v1/admin/catalog/inspections` (+ `/{id}`, assign, reassign, start, responses, evidence, complete, cancel, authorize-reinspection) | GET, POST, PUT, DELETE | inspections.view / assign / perform / override | Inspection detail | Integrated |
 | Files | `/api/v1/files/upload-requests`, `/{id}/complete`, `/{id}`, `/{id}/download-url` | POST, GET | signed-in (owner-scoped) | Profile photo, inspection evidence | Integrated |
 | Notifications | `/api/v1/admin/notification-templates` (+ `/{code}/{channel}`, versions, activate, retire) | GET, POST, PUT | notification-templates.* | Notifications | Integrated |

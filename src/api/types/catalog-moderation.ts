@@ -280,6 +280,29 @@ export interface MediaAssetDto {
   fileAssetId: Guid;
   isPrimary: boolean;
   displayOrder: number;
+  /** F2-E: short-lived (15 min) presigned URL for reviewers; null when it couldn't be issued. */
+  downloadUrl?: string | null;
+  expiresAtUtc?: IsoDateTime | null;
+}
+
+/** ListingMediaDownloadUrlResponse: GET …/versions/{versionId}/media/{listingMediaAssetId}/download-url (catalog:listings:review) */
+export interface ListingMediaDownloadUrlResponse {
+  listingId: Guid;
+  listingVersionId: Guid;
+  listingMediaAssetId: Guid;
+  fileAssetId: Guid;
+  downloadUrl: string | null;
+  expiresAtUtc: IsoDateTime | null;
+}
+
+/** InspectionEvidenceDownloadUrlResponse: GET /admin/catalog/inspections/{id}/evidence/{evidenceId}/download-url (admin or assigned inspector) */
+export interface InspectionEvidenceDownloadUrlResponse {
+  inspectionId: Guid;
+  inspectionEvidenceId: Guid;
+  fileAssetId: Guid;
+  evidenceType: string | null;
+  downloadUrl: string | null;
+  expiresAtUtc: IsoDateTime | null;
 }
 
 /** ModerationHistoryDto */

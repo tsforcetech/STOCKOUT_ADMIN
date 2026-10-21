@@ -8,6 +8,7 @@ import type {
   CreateInspectionRequest,
   Guid,
   InspectionDetailDto,
+  InspectionEvidenceDownloadUrlResponse,
   InspectionEvidenceDto,
   InspectionQueueQuery,
   InspectionSummaryDto,
@@ -59,6 +60,10 @@ export const inspectionsService = {
 
   /** Saves checklist answers (fixed in R3-A: answers now persist). Every item needs its inspectionResponseId. */
   saveResponses: (inspectionId: Guid, body: SaveInspectionResponsesRequest) => http.put<SaveResponsesResult>(`${one(inspectionId)}/responses`, body),
+
+  /** F2-E: fresh URL for one evidence file (admins, or the assigned inspector). */
+  evidenceDownloadUrl: (inspectionId: Guid, evidenceId: Guid) =>
+    http.get<InspectionEvidenceDownloadUrlResponse>(`${one(inspectionId)}/evidence/${seg(evidenceId)}/download-url`),
 
   attachEvidence: (inspectionId: Guid, body: AttachEvidenceRequest) => http.post<InspectionEvidenceDto>(`${one(inspectionId)}/evidence`, body),
 

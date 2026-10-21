@@ -1,5 +1,6 @@
 import * as React from "react";
-import { CheckIcon, InfoIcon, ProhibitIcon, XIcon } from "@phosphor-icons/react";
+import { useQuery } from "@tanstack/react-query";
+import { CheckIcon, FileTextIcon, InfoIcon, ProhibitIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog, Dialog, DialogContent } from "@/components/ui/dialog";
 import { DetailList } from "@/components/common/page-header";
@@ -9,8 +10,9 @@ import { useAccess } from "@/lib/auth/use-access";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { sellersService } from "@/services/sellers.service";
 import { PERMISSIONS as P, type MarketplaceSellerDto } from "@/api/types/user-organization";
-import { formatDateTime, humanize } from "@/lib/utils/format";
-import { ageSince } from "@/features/listings/shared";
+import { formatDate, formatDateTime, humanize } from "@/lib/utils/format";
+import { Skeleton } from "@/components/ui/misc";
+import { ApiErrorNotice, SignedFileLink, ageSince } from "@/features/listings/shared";
 
 /** verify/reject are allowed only while PENDING and SUBMITTED/UNDER_REVIEW (backend state machine). */
 export const canReviewKyc = (s: MarketplaceSellerDto) => s.verificationStatus === "PENDING" && (s.onboardingStatus === "SUBMITTED" || s.onboardingStatus === "UNDER_REVIEW");
@@ -150,13 +152,63 @@ function SellerReviewBody({ seller: s, canDecide }: { seller: MarketplaceSellerD
           ]}
         />
       </section>
+      <SellerDocuments sellerId={s.sellerId} />
       <p className="flex items-start gap-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
         <InfoIcon className="mt-0.5 size-4 shrink-0" />
         <span>
-          Legal name, trade licence number, contact details and uploaded KYC documents aren&apos;t available to admins yet: the admin seller API returns status fields only,
-          and the seller documents API is limited to the seller&apos;s own team. They will show here once the backend adds an admin seller detail endpoint.
+          Legal name, trade licence number and contact details aren&apos;t available to admins yet: the admin seller API returns status fields only. They will show here
+          once the backend adds an admin seller detail endpoint.
         </span>
       </p>
     </div>
+  );
+}
+
+/** KYC documents with reviewer download links (F2-E, sellers.view). */
+function SellerDocuments({ sellerId }: { sellerId: string }) {
+  const { can } = useAccess();
+  const allowed = can(P.SELLERS_VIEW);
+  const docs = useQuery({
+    queryKey: [...sellersKeys.all, "documents", sellerId],
+    queryFn: ({ signal }) => sellersService.documents(sellerId, signal),
+    enabled: allowed,
+    staleTime: 60_000,
+  });
+  return (
+    <section>
+      <h3 className="mb-3 text-sm font-semibold text-foreground">KYC documents</h3>
+      {!allowed ? (
+        <p className="text-sm text-muted-foreground">Viewing seller documents needs the sellers.view permission.</p>
+      ) : docs.isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      ) : docs.error ? (
+        <ApiErrorNotice error={docs.error} />
+      ) : !docs.data?.length ? (
+        <p className="rounded-md bg-surface-muted px-3 py-2 text-sm text-muted-foreground">The seller hasn&apos;t uploaded any documents.</p>
+      ) : (
+        <ul className="divide-y divide-border rounded-lg border border-border">
+          {docs.data.map((d) => (
+            <li key={d.sellerDocumentId} className="flex flex-wrap items-center gap-3 px-4 py-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-muted [&_svg]:size-5">
+                <FileTextIcon />
+              </span>
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="font-medium text-foreground">{d.documentType || "Document"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {[d.documentNumber && `No. ${d.documentNumber}`, d.expiresAt && `Expires ${formatDate(d.expiresAt)}`, `Uploaded ${formatDateTime(d.createdAtUtc)}`]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+              <StatusBadge value={d.verificationStatus} />
+              <SignedFileLink url={d.downloadUrl} expiresAtUtc={d.expiresAtUtc} refresh={() => sellersService.documentDownloadUrl(sellerId, d.sellerDocumentId)} label="Open" />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
