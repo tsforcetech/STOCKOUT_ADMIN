@@ -18,7 +18,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div aria-hidden className="pointer-events-none absolute -bottom-28 -right-28 size-[320px] rounded-full border-[44px] border-[#f8ff2c]/20" />
 
         <div className="relative px-12 pt-12 xl:px-16 xl:pt-14">
-          <Logo tone="light" className="text-2xl" />
+          <Logo tone="light" className="h-8" />
         </div>
 
         <div className="relative flex flex-1 flex-col justify-center px-12 pt-24 xl:px-16">
@@ -40,7 +40,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
 
       <section className="relative flex min-w-0 flex-1 flex-col bg-surface sm:rounded-xl sm:border sm:border-border lg:ml-6">
         <div className="px-6 pt-8 sm:px-10">
-          <Logo className="h-[26px]" />
+          <Logo className="h-7" />
         </div>
         <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-8">{children}</div>
         <footer className="pb-6 text-center text-xs text-muted-foreground lg:hidden">

@@ -4,13 +4,10 @@ import { PermissionDenied } from "@/components/feedback/states";
 import type { PermissionRequirement } from "@/lib/permissions/permissions";
 import { useAuth } from "./auth-context";
 import { useAccess } from "./use-access";
+import { BrandLoader } from "@/components/feedback/brand-loader";
 
 function FullScreenLoader() {
-  return (
-    <div className="flex min-h-dvh items-center justify-center bg-surface" role="status" aria-label="Loading">
-      <div className="size-10 animate-spin rounded-full border-4 border-border border-t-action-border" />
-    </div>
-  );
+  return <BrandLoader fullScreen />;
 }
 
 /** Requires an authenticated session; otherwise redirects to /login preserving the target. */

@@ -1,12 +1,12 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
-/** Figma page heading: "Body/Xsm Caps" eyebrow above a Space Grotesk H3 (32/40). */
+/** Page heading: Space Grotesk caps eyebrow (secondary brand font) above a Geist H3 (32/40). */
 export function PageHeader({ title, eyebrow, description, actions, className, children }: { title: React.ReactNode; eyebrow?: React.ReactNode; description?: React.ReactNode; actions?: React.ReactNode; className?: string; children?: React.ReactNode }) {
   return (
     <div className={cn("mb-6 flex flex-col gap-4 px-0 sm:flex-row sm:items-end sm:justify-between sm:px-3", className)}>
       <div className="min-w-0">
-        {eyebrow && <p className="text-eyebrow mb-1 text-foreground">{eyebrow}</p>}
+        {eyebrow && <p className="text-eyebrow mb-1 font-display text-foreground">{eyebrow}</p>}
         <h1 className="font-heading text-[26px] font-bold leading-8 text-foreground sm:text-[32px] sm:leading-10">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
         {children}
