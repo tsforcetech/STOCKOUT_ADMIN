@@ -9,6 +9,10 @@ import type { AdminSellerDocumentDownloadUrlResponse, AdminSellerDocumentRespons
 export const sellersService = {
   list: async (signal?: AbortSignal) => unwrapData<MarketplaceSellerDto[]>(await http.get<Envelope<MarketplaceSellerDto[]>>("/api/v1/admin/marketplace/sellers", { signal })),
 
+  /** F2-I / L16: full seller profile (legal name, registration no., country, currency) for KYC review (sellers.view). */
+  detail: async (sellerId: string, signal?: AbortSignal) =>
+    unwrapData<MarketplaceSellerDto>(await http.get<Envelope<MarketplaceSellerDto>>(`/api/v1/admin/marketplace/sellers/${encodeURIComponent(sellerId)}`, { signal })),
+
   review: async (sellerId: string, action: AdminSellerReviewAction, expectedRowVersion: string) =>
     unwrapData<MarketplaceSellerDto>(
       await http.post<Envelope<MarketplaceSellerDto>>(`/api/v1/admin/marketplace/sellers/${encodeURIComponent(sellerId)}/verify`, { action, expectedRowVersion }),

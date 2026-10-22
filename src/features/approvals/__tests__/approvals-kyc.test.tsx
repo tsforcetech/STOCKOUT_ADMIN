@@ -43,6 +43,11 @@ describe("Approvals → Seller KYC", () => {
       { method: "GET", path: "/api/v1/admin/marketplace/sellers", respond: () => ({ body: { success: true, data: [seller(rejected ? { verificationStatus: "REJECTED", onboardingStatus: "DRAFT" } : {})] } }) },
       {
         method: "GET",
+        path: `/api/v1/admin/marketplace/sellers/${SELLER_ID}`,
+        respond: () => ({ body: { success: true, data: seller({ legalName: "Al Noor Building Materials LLC", registrationNo: "CN-998877", countryCode: "AE", defaultCurrency: "AED" }) } }),
+      },
+      {
+        method: "GET",
         path: `/api/v1/admin/marketplace/sellers/${SELLER_ID}/documents`,
         respond: () => ({
           body: {
@@ -80,6 +85,9 @@ describe("Approvals → Seller KYC", () => {
     expect(within(panel).getByRole("heading", { name: "Al Noor Building Materials" })).toBeInTheDocument();
     expect(within(panel).getByText(/Submitted for verification/)).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: /Approve KYC/ })).toBeInTheDocument();
+    // Business details come from the admin seller detail endpoint (L16).
+    expect(await within(panel).findByText("Al Noor Building Materials LLC")).toBeInTheDocument();
+    expect(within(panel).getByText("CN-998877")).toBeInTheDocument();
     // KYC documents come from the admin documents endpoint, with a reviewer link.
     expect(await within(panel).findByText("Trade licence")).toBeInTheDocument();
     expect(within(panel).getByText(/No\. CN-12345/)).toBeInTheDocument();

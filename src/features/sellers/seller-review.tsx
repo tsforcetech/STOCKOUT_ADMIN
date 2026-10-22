@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CheckIcon, FileTextIcon, InfoIcon, ProhibitIcon, XIcon } from "@phosphor-icons/react";
+import { CheckIcon, FileTextIcon, ProhibitIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog, Dialog, DialogContent } from "@/components/ui/dialog";
 import { DetailList } from "@/components/common/page-header";
@@ -127,16 +127,7 @@ function SellerReviewBody({ seller: s, canDecide }: { seller: MarketplaceSellerD
               : "This seller hasn't submitted onboarding yet, so there is nothing to decide."}
         </p>
       )}
-      <section>
-        <h3 className="mb-3 text-sm font-semibold text-foreground">Seller</h3>
-        <DetailList
-          items={[
-            { label: "Display name", value: s.displayName || "—" },
-            { label: "Type", value: humanize(s.organizationType) },
-            { label: "Seller ID", value: <IdText value={s.sellerId} />, full: true },
-          ]}
-        />
-      </section>
+      <SellerProfile seller={s} />
       <section>
         <h3 className="mb-3 text-sm font-semibold text-foreground">Status</h3>
         <DetailList
@@ -153,13 +144,6 @@ function SellerReviewBody({ seller: s, canDecide }: { seller: MarketplaceSellerD
         />
       </section>
       <SellerDocuments sellerId={s.sellerId} />
-      <p className="flex items-start gap-2 rounded-md border border-border px-3 py-2 text-xs text-muted-foreground">
-        <InfoIcon className="mt-0.5 size-4 shrink-0" />
-        <span>
-          Legal name, trade licence number and contact details aren&apos;t available to admins yet: the admin seller API returns status fields only. They will show here
-          once the backend adds an admin seller detail endpoint.
-        </span>
-      </p>
     </div>
   );
 }
@@ -208,6 +192,48 @@ function SellerDocuments({ sellerId }: { sellerId: string }) {
             </li>
           ))}
         </ul>
+      )}
+    </section>
+  );
+}
+
+/** Business details from the admin seller detail endpoint (L16); the list row only carries status fields. */
+function SellerProfile({ seller: s }: { seller: MarketplaceSellerDto }) {
+  const { can } = useAccess();
+  const detail = useQuery({
+    queryKey: [...sellersKeys.all, "detail", s.sellerId],
+    queryFn: ({ signal }) => sellersService.detail(s.sellerId, signal),
+    enabled: can(P.SELLERS_VIEW),
+    staleTime: 60_000,
+  });
+  const d = detail.data;
+  const text = (v: string | null | undefined) => (v && v.trim() ? v : "—");
+  return (
+    <section>
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Seller</h3>
+      {detail.isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
+      ) : (
+        <>
+          {detail.error && <ApiErrorNotice error={detail.error} className="mb-3" />}
+          <DetailList
+            items={[
+              { label: "Display name", value: text(d?.displayName ?? s.displayName) },
+              { label: "Legal name", value: text(d?.legalName) },
+              { label: s.organizationType === "BUSINESS" ? "Trade licence / registration no." : "Registration no.", value: text(d?.registrationNo) },
+              { label: "Type", value: humanize(d?.organizationType || s.organizationType) },
+              { label: "Country", value: text(d?.countryCode) },
+              { label: "Currency", value: text(d?.defaultCurrency) },
+              { label: "Email", value: text(d?.email) },
+              { label: "Seller since", value: formatDateTime(d?.createdAtUtc ?? null) },
+              { label: "Seller ID", value: <IdText value={s.sellerId} />, full: true },
+            ]}
+          />
+        </>
       )}
     </section>
   );
