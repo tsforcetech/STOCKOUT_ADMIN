@@ -20,6 +20,8 @@ import type {
   PlatformSettingResponse,
   PlatformUserDetailResponse,
   PlatformUserListResponse,
+  EligibleInspectorsQuery,
+  PagedEligibleInspectorsResponse,
   UpdatePlatformFeatureFlagRequest,
   UpdatePlatformRolePermissionsRequest,
   UpdatePlatformRoleRequest,
@@ -50,6 +52,14 @@ export const platformService = {
 
   // Platform users
   users: (signal?: AbortSignal) => get<PlatformUserListResponse[]>("/api/v1/platform/users", signal),
+  /** F2-H: users who may be assigned inspections (inspections.perform or PlatformSuperAdmin), sorted by name. */
+  eligibleInspectors: (query: EligibleInspectorsQuery, signal?: AbortSignal) =>
+    get<PagedEligibleInspectorsResponse>("/api/v1/platform/inspectors/eligible", signal, {
+      search: query.search || undefined,
+      page: query.page?.toString(),
+      pageSize: query.pageSize?.toString(),
+      includeUserId: query.includeUserId,
+    }),
   user: (userId: string, signal?: AbortSignal) => get<PlatformUserDetailResponse>(`/api/v1/platform/users/${seg(userId)}`, signal),
   setUserRoles: (userId: string, body: UpdatePlatformUserRolesRequest) => put<unknown>(`/api/v1/platform/users/${seg(userId)}/roles`, body),
   disableUser: (userId: string, body: DisablePlatformUserRequest) => post<unknown>(`/api/v1/platform/users/${seg(userId)}/disable`, body),

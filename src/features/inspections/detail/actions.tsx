@@ -18,7 +18,7 @@ import { PERMISSIONS as P } from "@/api/types/user-organization";
 import type { InspectionDetailDto, InspectionResult } from "@/api/types/catalog-moderation";
 import { inspectionsService } from "@/services/inspections.service";
 import { listingKeys } from "@/features/listings/queries";
-import { ApiErrorNotice, GUID_RE, Notice, isConflict, isGuid, usePlatformUsers } from "@/features/listings/shared";
+import { ApiErrorNotice, GUID_RE, Notice, isConflict, isGuid } from "@/features/listings/shared";
 import { inspectionKeys } from "../queries";
 
 type Open = "assign" | "reassign" | "start" | "complete" | "cancel" | "reinspect" | null;
@@ -123,38 +123,24 @@ function useInspectionMutation<TVars, TData>(inspection: InspectionDetailDto, fn
   });
 }
 
-const INSPECT = "inspections.perform";
-
-/**
- * Role codes that grant inspections.perform, from the roles API (needs roles.view). Users' roles come back with their
- * codes since backend C3, so the picker can show only users who can actually inspect. null = unknown (no access/error).
- */
-function useInspectorRoleCodes() {
-  const { can } = useAccess();
-  const enabled = can(P.ROLES_VIEW);
-  const query = useQuery({
-    queryKey: ["platform", "roles", "with-permission", INSPECT],
-    enabled,
-    staleTime: 5 * 60_000,
-    queryFn: async ({ signal }) => {
-      const roles = (await platformService.roles(signal)).filter((r) => r.isActive && r.permissionCount > 0);
-      const details = await Promise.all(roles.map((r) => platformService.role(r.platformRoleId, signal)));
-      return new Set(details.filter((d) => d.permissions.some((x) => x.code === INSPECT)).map((d) => d.code.toLowerCase()));
-    },
+/** Users who may be assigned inspections (backend F2-H): inspections.perform or Platform Super Admin, enabled only. */
+function useEligibleInspectors(open: boolean) {
+  return useQuery({
+    queryKey: ["platform", "inspectors", "eligible"],
+    queryFn: ({ signal }) => platformService.eligibleInspectors({ page: 1, pageSize: 100 }, signal),
+    enabled: open,
+    staleTime: 60_000,
   });
-  return { codes: enabled && !query.error ? (query.data ?? null) : null, isLoading: enabled && query.isLoading };
 }
 
 function AssignDialog({ open, mode, inspection, onClose }: { open: boolean; mode: "assign" | "reassign"; inspection: InspectionDetailDto; onClose: () => void }) {
-  const users = usePlatformUsers();
-  const inspectorRoles = useInspectorRoleCodes();
-  const [showAll, setShowAll] = React.useState(false);
+  const inspectors = useEligibleInspectors(open);
   const [manual, setManual] = React.useState(false);
   const [userId, setUserId] = React.useState("");
   const [reasonCode, setReasonCode] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [touched, setTouched] = React.useState(false);
-  const usePicker = users.enabled && !manual && !users.error;
+  const usePicker = !manual && !inspectors.error;
 
   const mutation = useInspectionMutation(
     inspection,
@@ -173,14 +159,9 @@ function AssignDialog({ open, mode, inspection, onClose }: { open: boolean; mode
   );
   useResetOnOpen(open, mutation.reset);
 
-  const filtering = !!inspectorRoles.codes && !showAll;
   const candidates = React.useMemo(
-    () =>
-      (users.data ?? [])
-        .filter((u) => u.isEnabled && u.userId.toLowerCase() !== (inspection.assignedInspectorUserId ?? "").toLowerCase())
-        .filter((u) => !filtering || u.roles.some((r) => inspectorRoles.codes!.has(r.code.toLowerCase())))
-        .sort((a, b) => (a.displayName || a.email).localeCompare(b.displayName || b.email)),
-    [users.data, inspection.assignedInspectorUserId, filtering, inspectorRoles.codes],
+    () => (inspectors.data?.items ?? []).filter((u) => u.isEnabled && u.userId.toLowerCase() !== (inspection.assignedInspectorUserId ?? "").toLowerCase()),
+    [inspectors.data, inspection.assignedInspectorUserId],
   );
   const invalid = !isGuid(userId);
 
@@ -214,10 +195,16 @@ function AssignDialog({ open, mode, inspection, onClose }: { open: boolean; mode
               htmlFor="assign-user"
               required
               error={touched && invalid ? "Choose a user." : undefined}
-              hint={users.isLoading || inspectorRoles.isLoading ? "Loading inspectors…" : filtering && candidates.length === 0 ? "No users hold an inspector role yet." : undefined}
+              hint={
+                inspectors.isLoading
+                  ? "Loading inspectors…"
+                  : candidates.length === 0
+                    ? "No other user can inspect yet. Give someone a role with the inspections.perform permission."
+                    : `${candidates.length} inspector${candidates.length === 1 ? "" : "s"} available.`
+              }
             >
-              <NativeSelect value={userId} onChange={(e) => setUserId(e.target.value)} disabled={users.isLoading || inspectorRoles.isLoading} searchable searchPlaceholder="Search name or email…">
-                <option value="">{filtering ? "Select an inspector" : "Select a platform user"}</option>
+              <NativeSelect value={userId} onChange={(e) => setUserId(e.target.value)} disabled={inspectors.isLoading} searchable searchPlaceholder="Search name or email…">
+                <option value="">Select an inspector</option>
                 {candidates.map((u) => (
                   <option key={u.userId} value={u.userId}>
                     {u.displayName || u.email || u.userId}
@@ -232,23 +219,13 @@ function AssignDialog({ open, mode, inspection, onClose }: { open: boolean; mode
               <Input className="font-mono text-xs" value={userId} onChange={(e) => setUserId(e.target.value)} pattern={GUID_RE.source} autoComplete="off" />
             </FormField>
           )}
-          {users.enabled && !users.error && (
+          {inspectors.error ? (
+            <ApiErrorNotice error={inspectors.error} />
+          ) : (
             <Button variant="link" size="sm" onClick={() => { setManual((m) => !m); setUserId(""); }}>
-              {manual ? "Pick from platform users" : "Enter a user ID instead"}
+              {manual ? "Pick from the inspector list" : "Enter a user ID instead"}
             </Button>
           )}
-          {usePicker && inspectorRoles.codes && (
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-body">
-              <input type="checkbox" checked={showAll} onChange={(e) => { setShowAll(e.target.checked); setUserId(""); }} />
-              Show all platform users
-            </label>
-          )}
-          <Notice>
-            {inspectorRoles.codes
-              ? "Showing users whose role includes the inspections.perform permission. The server rejects anyone else."
-              : "The list can't be limited to inspectors without the roles.view permission, so it shows every platform user. The server only accepts users holding inspections.perform."}
-            {!users.enabled && " Picking from a list needs the platform-users.view permission."}
-          </Notice>
           {mode === "reassign" && (
             <>
               <FormField label="Reason code" htmlFor="reassign-reason" hint="Optional, up to 50 characters.">

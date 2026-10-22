@@ -816,3 +816,30 @@ export interface AdminSellerDocumentDownloadUrlResponse {
   downloadUrl: string | null;
   expiresAtUtc: IsoDateTime | null;
 }
+
+/** C#: Contracts.PlatformInspectors.EligibleInspectorResponse: enabled users holding inspections.perform (or PlatformSuperAdmin). */
+export interface EligibleInspectorResponse {
+  userId: Guid;
+  email: string;
+  displayName: string;
+  isEnabled: boolean;
+  roles: PlatformUserRoleModel[];
+}
+
+/** C#: PagedEligibleInspectorsResponse. GET /api/v1/platform/inspectors/eligible (enveloped). */
+export interface PagedEligibleInspectorsResponse {
+  items: EligibleInspectorResponse[];
+  totalCount: number;
+  page: number;
+  /** clamped to 1..100 server-side */
+  pageSize: number;
+}
+
+/** C#: EligibleInspectorsQueryRequest. Needs inspections.assign, .override, .view or platform-users.view. */
+export interface EligibleInspectorsQuery {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  /** also return this user even if not eligible (e.g. the current assignee) */
+  includeUserId?: Guid;
+}
