@@ -99,7 +99,8 @@ export type PlatformInvitationStatus = 'Pending' | 'Accepted' | 'Revoked' | 'Exp
 export type PlatformSettingValueType = 'BOOLEAN' | 'INTEGER' | 'DECIMAL' | 'STRING';
 
 /** Seller (organization) type. C#: MarketplaceSellerService.BecomeSellerAsync validation. */
-export type SellerType = 'INDIVIDUAL' | 'BUSINESS';
+/** DEC-010: new sellers are BUSINESS/CORPORATE; INDIVIDUAL remains on historical records. */
+export type SellerType = 'INDIVIDUAL' | 'BUSINESS' | 'CORPORATE';
 
 /** Seller organization status (SQL 024). */
 export type SellerStatus = 'ACTIVE' | 'SUSPENDED';
@@ -567,6 +568,61 @@ export interface MarketplaceSellerDto {
   updatedAtUtc: IsoDateTime;
   /** base64 of an 8-byte SQL rowversion; send back as expectedRowVersion */
   rowVersion: string;
+  // PA-1B.1 business profile (detail endpoint; absent from the list endpoint)
+  tradeLicenseNumber?: string | null;
+  issuingAuthority?: string | null;
+  tradeLicenseIssuedAtUtc?: IsoDateTime | null;
+  /** Approval fails with SELLER_LICENCE_EXPIRED when null or past. */
+  tradeLicenseExpiresAtUtc?: IsoDateTime | null;
+  isVatRegistered?: boolean;
+  taxRegistrationNumber?: string | null;
+  hasVatDeclaration?: boolean;
+  signatoryName?: string | null;
+  signatoryEmail?: string | null;
+  signatoryPhone?: string | null;
+  signatoryAuthorityRole?: string | null;
+  businessContactEmail?: string | null;
+  businessContactPhone?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  stateOrEmirate?: string | null;
+  postalCode?: string | null;
+  bankName?: string | null;
+  bankAccountNumber?: string | null;
+  bankIban?: string | null;
+  bankSwiftCode?: string | null;
+  bankBeneficiaryName?: string | null;
+  rejectionReason?: string | null;
+  suspensionReason?: string | null;
+  canList?: boolean;
+  mandatoryDocumentsComplete?: boolean;
+  missingDocumentCategories?: string[];
+  pendingPolicies?: string[];
+}
+
+/** C#: Contracts.Marketplace.AdminReviewDocumentRequest — POST …/sellers/{id}/documents/{docId}/review (VERIFY: sellers.verify, REJECT: sellers.reject). */
+export interface AdminReviewDocumentRequest {
+  action: 'VERIFY' | 'REJECT';
+  /** Required when rejecting (REJECTION_REASON_REQUIRED). */
+  reviewRemark?: string | null;
+  /** Reviewer-confirmed signatory evidence; needed for combined / OTHER documents. */
+  verifiedSignatoryId?: boolean | null;
+  verifiedSignatoryAuthorityProof?: boolean | null;
+  /** Explicit type for a generic or wrong upload; the generic VAT type is refused (AMBIGUOUS_RECLASSIFICATION_NOT_ALLOWED). */
+  reclassifiedDocumentType?: string | null;
+}
+
+/** C#: Contracts.Marketplace.SellerVerificationHistoryDto — GET …/sellers/{id}/history (sellers.view). */
+export interface SellerVerificationHistoryDto {
+  historyId: Guid;
+  sellerId: Guid;
+  fromStatus: string;
+  toStatus: string;
+  reason: string | null;
+  changedByUserId: Guid;
+  changedAtUtc: IsoDateTime;
+  comments: string | null;
 }
 
 /** C#: Contracts.Marketplace.AdminSellerReviewRequest (used by /verify and /suspend). */
@@ -575,6 +631,8 @@ export interface AdminSellerReviewRequest {
   action: AdminSellerReviewAction;
   /** base64 rowVersion (8 bytes) */
   expectedRowVersion: string;
+  /** Rejection reason shown to the seller (REJECT only). */
+  reason?: string | null;
 }
 
 /** Body for /suspend (action required non-empty by implicit validation, value ignored). */
@@ -690,6 +748,11 @@ export const PERMISSIONS = {
   SELLERS_REJECT: 'sellers.reject',
   SELLERS_SUSPEND: 'sellers.suspend',
 
+  // Policies (032)
+  POLICIES_VIEW: 'policies.view',
+  POLICIES_MANAGE: 'policies.manage',
+  POLICIES_PUBLISH: 'policies.publish',
+
   // Listings (007)
   LISTINGS_VIEW: 'listings.view',
   LISTINGS_APPROVE: 'listings.approve',
@@ -802,6 +865,15 @@ export interface AdminSellerDocumentResponse {
   expiresAt: IsoDateTime | null;
   verificationStatus: string;
   createdAtUtc: IsoDateTime;
+  reviewRemark?: string | null;
+  /** Applicant-declared (submission completeness only). */
+  containsSignatoryId?: boolean | null;
+  containsSignatoryAuthorityProof?: boolean | null;
+  /** Reviewer-verified (required for approval). */
+  verifiedSignatoryId?: boolean | null;
+  verifiedSignatoryAuthorityProof?: boolean | null;
+  reviewedByUserId?: Guid | null;
+  reviewedAtUtc?: IsoDateTime | null;
   /** short-lived (15 min) presigned URL; null when it couldn't be issued */
   downloadUrl: string | null;
   expiresAtUtc: IsoDateTime | null;

@@ -197,7 +197,7 @@ function SellersContent() {
             emptyDescription={sellers.length ? "Try another tab or clear the search." : "Sellers appear here once they register on the marketplace."}
           />
           <p className="mt-3 text-xs text-muted-foreground">
-            Click a seller to open their KYC review. The seller list endpoint returns status fields only; contact details, documents and GMV are not exposed to admins by the current API.
+            Click a seller to open their KYC review: business profile, documents with per-document review, approval checks and verification history. GMV isn't exposed by the current API.
           </p>
         </div>
       </SectionCard>

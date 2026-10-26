@@ -14,6 +14,7 @@ import {
   ListNumbersIcon,
   PackageIcon,
   PlugIcon,
+  ScalesIcon,
   ShoppingCartIcon,
   SlidersHorizontalIcon,
   SquaresFourIcon,
@@ -112,6 +113,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Team & Access", to: "/team", icon: UsersThreeIcon, permission: TEAM_VIEW },
       { label: "Integrations", to: "/integrations", icon: PlugIcon, unavailable: true },
+      { label: "Policies", to: "/policies", icon: ScalesIcon, permission: { anyOf: [P.POLICIES_VIEW, P.POLICIES_MANAGE, P.POLICIES_PUBLISH] } },
       { label: "Audit Log", to: "/audit", icon: FileMagnifyingGlassIcon, unavailable: true },
       { label: "Settings", to: "/settings", icon: SlidersHorizontalIcon, permission: { anyOf: [P.SETTINGS_VIEW, P.FEATURE_FLAGS_VIEW] } },
       { label: "My Profile", to: "/account", icon: UserIcon },

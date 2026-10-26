@@ -42,6 +42,7 @@ const appRoutes: RouteObject[] = [
       { path: ":inspectionId", lazy: page(() => import("@/features/inspections/inspection-detail-page")), handle: { crumb: "Inspection" } },
     ],
   },
+  { path: "policies", lazy: page(() => import("@/features/policies/policies-page")), handle: { crumb: "Policies" } },
   { path: "notifications", lazy: page(() => import("@/features/notifications/templates-page")), handle: { crumb: "Notification templates" } },
   {
     path: "team",

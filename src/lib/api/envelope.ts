@@ -49,3 +49,10 @@ export function arrayPage<T>(items: T[] | null | undefined): Page<T> {
   const list = items ?? [];
   return { items: list, totalCount: list.length, page: 1, pageSize: list.length || 1, serverPaginated: false };
 }
+
+/** List endpoints: null/undefined → [], anything else that isn't an array fails the query instead of crashing render. */
+export function expectArray<T>(value: unknown): T[] {
+  if (value === null || value === undefined) return [];
+  if (Array.isArray(value)) return value as T[];
+  throw new ApiError({ kind: "server", status: 200, message: "The server returned an unexpected response.", body: value });
+}

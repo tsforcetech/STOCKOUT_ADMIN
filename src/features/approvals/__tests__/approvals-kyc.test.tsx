@@ -96,8 +96,15 @@ describe("Approvals → Seller KYC", () => {
     expect(openSpy).toHaveBeenCalledWith("https://media.example/doc-1.pdf?sig=1", "_blank", "noopener,noreferrer");
     openSpy.mockRestore();
     await userEvent.click(within(panel).getByRole("button", { name: /Reject KYC/ }));
-    await userEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Reject" }));
-    await waitFor(() => expect(calls.find((c) => c.url.pathname.endsWith("/verify"))?.body).toEqual({ action: "REJECT", expectedRowVersion: "AAAAAAAAB9E=" }));
+    const confirm = await screen.findByRole("alertdialog");
+    // A reason is required and is sent to the seller.
+    await userEvent.click(within(confirm).getByRole("button", { name: "Reject" }));
+    expect(await within(confirm).findByText("A reason is required.")).toBeInTheDocument();
+    await userEvent.type(within(confirm).getByRole("textbox"), "Trade licence copy is unreadable");
+    await userEvent.click(within(confirm).getByRole("button", { name: "Reject" }));
+    await waitFor(() =>
+      expect(calls.find((c) => c.url.pathname.endsWith("/verify"))?.body).toEqual({ action: "REJECT", expectedRowVersion: "AAAAAAAAB9E=", reason: "Trade licence copy is unreadable" }),
+    );
     expect(await screen.findByText("No sellers awaiting KYC")).toBeInTheDocument();
   });
 
