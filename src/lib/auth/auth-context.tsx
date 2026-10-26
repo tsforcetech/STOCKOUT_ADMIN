@@ -13,6 +13,7 @@ import {
   type AccessContext,
 } from "@/lib/permissions/permissions";
 import { decodeJwtPayload, tokenStore } from "./token-store";
+import { loadCurrentIdentity } from "./current-identity";
 
 export type AuthStatus = "initializing" | "authenticated" | "anonymous";
 
@@ -100,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadAccess = React.useCallback(async () => {
     // Identity profile and platform permissions come from different services; load in parallel.
     const [me, perms, roles] = await Promise.allSettled([
-      authService.me(),
+      loadCurrentIdentity(() => platformService.myProfile()),
       platformService.myPermissions(),
       platformService.myRoles(),
     ]);
