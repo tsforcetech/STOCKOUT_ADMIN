@@ -1,6 +1,8 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
   BellIcon,
+  CalendarIcon,
+  ClipboardTextIcon,
   ChecksIcon,
   FileIcon,
   FileMagnifyingGlassIcon,
@@ -82,6 +84,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "People",
     items: [
       { label: "Sellers", to: "/sellers", icon: StorefrontIcon, permission: P.SELLERS_VIEW },
+      { label: "Business changes", to: "/business-changes", icon: ClipboardTextIcon, permission: P.ORG_BUSINESS_CHANGES_VIEW },
       { label: "Buyers", to: "/buyers", icon: ShoppingCartIcon, unavailable: true },
       { label: "Inspectors", to: "/inspectors", icon: ListMagnifyingGlassIcon, unavailable: true },
     ],
@@ -113,6 +116,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Team & Access", to: "/team", icon: UsersThreeIcon, permission: TEAM_VIEW },
       { label: "Integrations", to: "/integrations", icon: PlugIcon, unavailable: true },
+      { label: "UAE calendar", to: "/calendar", icon: CalendarIcon, permission: P.CALENDAR_VIEW },
       { label: "Policies", to: "/policies", icon: ScalesIcon, permission: { anyOf: [P.POLICIES_VIEW, P.POLICIES_MANAGE, P.POLICIES_PUBLISH] } },
       { label: "Audit Log", to: "/audit", icon: FileMagnifyingGlassIcon, unavailable: true },
       { label: "Settings", to: "/settings", icon: SlidersHorizontalIcon, permission: { anyOf: [P.SETTINGS_VIEW, P.FEATURE_FLAGS_VIEW] } },

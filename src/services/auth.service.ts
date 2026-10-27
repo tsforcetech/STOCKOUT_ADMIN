@@ -31,7 +31,10 @@ export const authService = {
 
   refresh: (refreshToken: string) => http.post<RefreshResponse>("/api/v1/auth/token/refresh", { refreshToken }, { auth: false }),
 
-  /** Revokes one session. Used for sign-out because POST /auth/logout does not revoke anything. */
+  /** Server-side logout: revokes the session the refresh token belongs to (B3). */
+  logout: (refreshToken: string) => http.post<StandardSuccessResponse>("/api/v1/auth/logout", { refreshToken }),
+
+  /** Revokes one session; sign-out falls back to this when /auth/logout fails. */
   revokeSession: (sessionId: string) => http.delete<StandardSuccessResponse>(`/api/v1/auth/sessions/${encodeURIComponent(sessionId)}`),
 
   logoutAll: () => http.post<StandardSuccessResponse>("/api/v1/auth/logout-all"),

@@ -14,8 +14,8 @@ const LIMIT = FILE_LIMITS.USER_PROFILE_PHOTO;
 
 /**
  * Upload → PUT /users/me with the new profileImageAssetId. The PUT carries the saved profile fields
- * so nothing else changes. We never send profileImageAssetId:null (backend deletes the file but keeps
- * the reference), so there is deliberately no "remove photo" action.
+ * so nothing else changes. "Remove photo" sends profileImageAssetId:null (C6 / F2-K: Optional<Guid?>,
+ * explicit null clears) and only reports success when the returned profile has no photo.
  */
 export function ProfilePhoto({ profile, name, fallbackDisplayName }: { profile: UserProfileResponse | null; name: string; fallbackDisplayName: string }) {
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -51,6 +51,25 @@ export function ProfilePhoto({ profile, name, fallbackDisplayName }: { profile: 
     onSuccess: () => setProgress(null),
   });
 
+  const remove = useApiMutation({
+    mutationFn: async () => {
+      const displayName = profile?.displayName?.trim() || fallbackDisplayName.trim();
+      const updated = await platformService.updateMyProfile({
+        displayName,
+        firstName: profile?.firstName ?? null,
+        lastName: profile?.lastName ?? null,
+        preferredLocale: profile?.preferredLocale ?? null,
+        timeZone: profile?.timeZone ?? null,
+        profileImageAssetId: null,
+      });
+      if (updated?.profileImageAssetId) throw new Error("The server kept the old photo. Removing photos isn't working yet — please try again later.");
+      return updated;
+    },
+    invalidate: [accountKeys.profile],
+    toastOnError: false,
+    successMessage: "Profile photo removed.",
+  });
+
   const onFile = (file: File | undefined) => {
     setError(null);
     if (!file) return;
@@ -82,6 +101,20 @@ export function ProfilePhoto({ profile, name, fallbackDisplayName }: { profile: 
       <Button variant="secondary" size="sm" loading={upload.isPending} onClick={() => inputRef.current?.click()}>
         <CameraIcon /> {assetId ? "Change photo" : "Upload photo"}
       </Button>
+      {assetId && (
+        <Button
+          variant="ghost"
+          size="sm"
+          loading={remove.isPending}
+          disabled={upload.isPending}
+          onClick={() => {
+            setError(null);
+            remove.mutate(undefined, { onError: (e) => setError(getErrorMessage(e)) });
+          }}
+        >
+          Remove photo
+        </Button>
+      )}
       {progress !== null && upload.isPending && (
         <p className="text-xs text-muted-foreground" aria-live="polite">
           Uploading… {Math.round(progress * 100)}%

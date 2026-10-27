@@ -1,4 +1,5 @@
 import * as React from "react";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { configureAuthHandlers, refreshSession } from "@/lib/api/client";
 import { isApiError } from "@/lib/api/errors";
@@ -230,18 +231,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = React.useCallback(async () => {
-    // POST /auth/logout does not revoke the session (backend defect), so revoke the current
-    // session id (JWT `sid`) explicitly. Best effort: local state is cleared regardless.
+    // Server-side logout first (POST /auth/logout with the refresh token), then the session id (JWT `sid`) as a
+    // fallback. Local state is cleared either way, but we only claim the session ended when the server confirmed it.
     const token = tokenStore.getAccessToken();
+    const refreshToken = tokenStore.get()?.refreshToken ?? tokenStore.getPersistedRefreshToken();
     const sid = token ? decodeJwtPayload(token)?.sid : undefined;
-    if (typeof sid === "string" && sid) {
+    let revoked = false;
+    if (refreshToken) {
+      try {
+        await authService.logout(refreshToken);
+        revoked = true;
+      } catch {
+        /* fall back to revoking the session */
+      }
+    }
+    if (!revoked && typeof sid === "string" && sid) {
       try {
         await authService.revokeSession(sid);
+        revoked = true;
       } catch {
         /* session may already be gone */
       }
     }
     endSessionLocally("signed-out");
+    if (!revoked) toast.warning("Signed out on this device. The server couldn't confirm the session was ended — sign out of other devices from Security if needed.");
   }, [endSessionLocally]);
 
   const reloadAccess = React.useCallback(async () => {

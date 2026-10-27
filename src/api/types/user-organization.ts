@@ -175,7 +175,7 @@ export interface UserProfileResponse {
 
 /**
  * C#: Contracts.Requests.UpdateUserProfileRequest (record).
- * NOTE: sending profileImageAssetId=null does not clear it in DB (ISNULL) but deletes the old file.
+ * profileImageAssetId: omit to keep the photo, null to remove it (C6 / F2-K, Optional<Guid?>), or a new file id.
  */
 export interface UpdateUserProfileRequest {
   /** [Required] */
@@ -747,6 +747,14 @@ export const PERMISSIONS = {
   SELLERS_VERIFY: 'sellers.verify',
   SELLERS_REJECT: 'sellers.reject',
   SELLERS_SUSPEND: 'sellers.suspend',
+
+  // Organization business changes & UAE calendar (034, PA-1B.2)
+  ORG_BUSINESS_CHANGES_VIEW: 'organizations.business_changes.view',
+  ORG_BUSINESS_CHANGES_APPROVE: 'organizations.business_changes.approve',
+  ORG_BUSINESS_CHANGES_REJECT: 'organizations.business_changes.reject',
+  CALENDAR_VIEW: 'organizations.calendar.view',
+  CALENDAR_MANAGE: 'organizations.calendar.manage',
+  CALENDAR_HOLIDAYS_CONFIRM: 'organizations.calendar.holidays.confirm',
 
   // Policies (032)
   POLICIES_VIEW: 'policies.view',
