@@ -726,6 +726,8 @@ export const PERMISSIONS = {
   ROLES_CREATE: 'roles.create',
   ROLES_UPDATE: 'roles.update',
   ROLES_DEACTIVATE: 'roles.deactivate',
+  /** L14: reactivate accepts roles.activate or roles.update. */
+  ROLES_ACTIVATE: 'roles.activate',
   ROLES_ASSIGN: 'roles.assign',
   PERMISSIONS_VIEW: 'permissions.view',
 

@@ -18,7 +18,7 @@ import { humanize } from "@/lib/utils/format";
 import { organizationsService } from "@/services/organizations.service";
 import { PERMISSIONS as P } from "@/api/types/user-organization";
 import { SENSITIVE_CHANGE_CATEGORIES, type BusinessChangeRequestResponse } from "@/api/types/organizations";
-import { ApiErrorNotice } from "@/features/listings/shared";
+import { ApiErrorNotice, SignedFileLink } from "@/features/listings/shared";
 import { CATEGORY_LABELS, categoryLabel, formatGst, orgAdminErrorMessage } from "./shared";
 
 const STATUSES = ["SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "DRAFT"];
@@ -211,15 +211,17 @@ function ReviewDialog({ request: r, onClose }: { request: BusinessChangeRequestR
                   {r.documents?.length ? (
                     <ul className="space-y-1 text-sm">
                       {r.documents.map((d) => (
-                        <li key={d.documentId}>
-                          {d.fileName} <span className="text-xs text-muted-foreground">· {humanize(d.documentType)}</span>
+                        <li key={d.documentId} className="flex flex-wrap items-center gap-x-2">
+                          <span className="min-w-0 break-all">{d.fileName}</span>
+                          <span className="text-xs text-muted-foreground">· {humanize(d.documentType)}</span>
+                          <SignedFileLink url={null} refresh={() => organizationsService.businessChangeDocumentUrl(r.requestId, d.documentId)} label={`Open ${d.fileName}`} />
                         </li>
                       ))}
                     </ul>
                   ) : (
                     <p className="text-sm text-muted-foreground">No documents attached.</p>
                   )}
-                  <p className="mt-1 text-xs text-muted-foreground">The API doesn't provide a reviewer download link for these files yet.</p>
+                  {r.documents?.length ? <p className="mt-1 text-xs text-muted-foreground">Each link is created when you open it and expires shortly after.</p> : null}
                 </section>
               </>
             ) : (

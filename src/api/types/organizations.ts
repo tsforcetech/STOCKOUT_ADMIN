@@ -20,6 +20,15 @@ export interface BusinessChangeDocumentDto {
   mimeType: string;
   createdAtUtc: IsoDateTime;
 }
+/** ORG-3: GET /admin/organizations/business-changes/{requestId}/documents/{documentId}/download-url (enveloped). */
+export interface BusinessChangeDocumentDownloadUrlResponse {
+  documentId: Guid;
+  requestId: Guid;
+  mediaAssetId: Guid;
+  documentType: string;
+  downloadUrl: string | null;
+  expiresAtUtc: IsoDateTime | null;
+}
 export interface BusinessChangeHistoryDto {
   historyId: Guid;
   requestId: Guid;

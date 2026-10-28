@@ -91,6 +91,8 @@ export const platformService = {
   createRole: (body: CreatePlatformRoleRequest) => post<PlatformRoleDetailResponse>("/api/v1/platform/roles", body),
   updateRole: (roleId: string, body: UpdatePlatformRoleRequest) => put<PlatformRoleDetailResponse>(`/api/v1/platform/roles/${seg(roleId)}`, body),
   deactivateRole: (roleId: string) => del<unknown>(`/api/v1/platform/roles/${seg(roleId)}`),
+  /** L14: roles.activate or roles.update. 404 ROLE_NOT_FOUND, 409 SYSTEM_ROLE_PROTECTED. Returns the role detail. */
+  reactivateRole: (roleId: string) => post<PlatformRoleDetailResponse>(`/api/v1/platform/roles/${seg(roleId)}/reactivate`),
   setRolePermissions: (roleId: string, body: UpdatePlatformRolePermissionsRequest) => put<unknown>(`/api/v1/platform/roles/${seg(roleId)}/permissions`, body),
 
   // Platform admins (PlatformSuperAdmin role only)

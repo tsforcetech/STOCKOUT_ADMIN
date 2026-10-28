@@ -8,7 +8,7 @@ import type { BatchInviteItemError, UserOrganizationErrorCode } from "@/api/type
 const MESSAGES: Partial<Record<UserOrganizationErrorCode, string>> = {
   ROLE_NOT_FOUND: "This role no longer exists. Refresh the list.",
   DUPLICATE_ROLE_CODE: "A role with this code already exists. Choose a different code.",
-  SYSTEM_ROLE_PROTECTED: "System roles cannot be deactivated.",
+  SYSTEM_ROLE_PROTECTED: "System roles are protected and cannot be deactivated or reactivated.",
   SYSTEM_ROLE_PERMISSIONS_PROTECTED: "The PlatformSuperAdmin role's permissions are managed by the platform and cannot be edited.",
   INVALID_PERMISSION: "One or more selected permissions are unknown or inactive. Refresh and try again.",
   USER_NOT_FOUND: "This user no longer exists.",

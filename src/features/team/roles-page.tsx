@@ -2,7 +2,7 @@ import * as React from "react";
 import { useNavigate } from "react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
-import { EyeIcon, PencilSimpleIcon, PlusIcon, ProhibitIcon, ShieldCheckIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, EyeIcon, PencilSimpleIcon, PlusIcon, ProhibitIcon, ShieldCheckIcon } from "@phosphor-icons/react";
 import { SectionCard, Toolbar, RefreshButton, RowAction } from "@/components/common/section-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { EntityCell } from "@/components/common/entity-cell";
@@ -29,6 +29,7 @@ function RolesContent() {
   const [state, setState] = useUrlState({ q: "", status: "" });
   const [formRole, setFormRole] = React.useState<PlatformRoleListResponse | "new" | null>(null);
   const [deactivating, setDeactivating] = React.useState<PlatformRoleListResponse | null>(null);
+  const [reactivating, setReactivating] = React.useState<PlatformRoleListResponse | null>(null);
   const query = useRolesQuery();
   const roles = React.useMemo(() => query.data ?? [], [query.data]);
 
@@ -49,8 +50,17 @@ function RolesContent() {
     onSuccess: () => setDeactivating(null),
   });
 
+  const reactivate = useApiMutation({
+    mutationFn: (r: PlatformRoleListResponse) => platformService.reactivateRole(r.platformRoleId),
+    invalidate: (_d, r) => [teamKeys.roles, teamKeys.role(r.platformRoleId)],
+    toastOnError: false,
+    successMessage: (_d, r) => `Role "${r.name}" reactivated.`,
+    onSuccess: () => setReactivating(null),
+  });
+
   const canUpdate = can(P.ROLES_UPDATE);
   const canDeactivate = can(P.ROLES_DEACTIVATE);
+  const canReactivate = can(P.ROLES_ACTIVATE) || canUpdate;
 
   const columns = React.useMemo<ColumnDef<PlatformRoleListResponse, unknown>[]>(
     () => [
@@ -86,12 +96,17 @@ function RolesContent() {
                   <ProhibitIcon />
                 </RowAction>
               )}
+              {canReactivate && !r.isActive && !r.isSystemRole && (
+                <RowAction label="Reactivate role" onClick={() => setReactivating(r)}>
+                  <ArrowCounterClockwiseIcon />
+                </RowAction>
+              )}
             </div>
           );
         },
       },
     ],
-    [canUpdate, canDeactivate, navigate],
+    [canUpdate, canDeactivate, canReactivate, navigate],
   );
 
   return (
@@ -133,17 +148,27 @@ function RolesContent() {
         onRowClick={(r) => navigate(`/team/roles/${r.platformRoleId}`)}
         emptyTitle={roles.length ? "No roles match these filters" : "No roles yet"}
       />
-      <p className="mt-3 text-xs text-muted-foreground">System roles cannot be deactivated. PlatformSuperAdmin implicitly holds every permission.</p>
+      <p className="mt-3 text-xs text-muted-foreground">System roles cannot be deactivated or reactivated. PlatformSuperAdmin implicitly holds every permission.</p>
 
       <RoleFormDialog open={formRole !== null} onOpenChange={(o) => !o && setFormRole(null)} role={formRole === "new" ? null : formRole} />
       <ConfirmDialog
         open={deactivating !== null}
         onOpenChange={(o) => !o && setDeactivating(null)}
         title="Deactivate role?"
-        description={`"${deactivating?.name ?? ""}" will stop granting its permissions to its ${formatNumber(deactivating?.userCount)} user(s) and can no longer be assigned. There is no reactivate endpoint.`}
+        description={`"${deactivating?.name ?? ""}" will stop granting its permissions to its ${formatNumber(deactivating?.userCount)} user(s) and can no longer be assigned until it is reactivated.`}
         confirmLabel="Deactivate"
         loading={deactivate.isPending}
         onConfirm={() => deactivating && deactivate.mutate(deactivating, { onError: (e) => toast.error(userOrgErrorMessage(e)) })}
+      />
+      <ConfirmDialog
+        open={reactivating !== null}
+        onOpenChange={(o) => !o && setReactivating(null)}
+        tone="primary"
+        title="Reactivate role?"
+        description={`"${reactivating?.name ?? ""}" will grant its permissions again to anyone who still holds it, and can be assigned again.`}
+        confirmLabel="Reactivate"
+        loading={reactivate.isPending}
+        onConfirm={() => reactivating && reactivate.mutate(reactivating, { onError: (e) => toast.error(userOrgErrorMessage(e)) })}
       />
     </SectionCard>
   );

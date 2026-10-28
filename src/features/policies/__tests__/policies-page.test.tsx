@@ -30,11 +30,14 @@ const terms = {
 const routes = [{ element: <RequireAuth />, children: [{ path: "/policies", element: <PoliciesPage /> }] }, { path: "/login", element: <div>login</div> }];
 
 describe("Policies page", () => {
-  it("creates a draft from the published text and publishes it", async () => {
+  it("creates a draft from the published text, lists it from the server and publishes it", async () => {
     sessionStorage.setItem("stockout.admin.rt", "rt-1");
     let created: Record<string, unknown> | null = null;
     let published = "";
+    // POL-1: the server's revision list is the source of truth (no browser-stored drafts).
+    let revisions: Record<string, unknown>[] = [{ ...terms, content: "x" }, { ...terms, policyRevisionId: "r-s", revisionCode: "Rev. 02", status: "SCHEDULED", title: "Scheduled terms", content: "Scheduled text" }];
     mockFetch([
+      { method: "GET", path: "/api/v1/policies/admin/revisions", respond: () => ({ body: { success: true, data: revisions } }) },
       ...sessionRoutes(["policies.view", "policies.manage", "policies.publish"]),
       { method: "GET", path: "/api/v1/policies", respond: () => ({ body: { success: true, data: [terms] } }) },
       { method: "GET", path: "/api/v1/policies/STK-POL-WEB-001", respond: () => ({ body: { success: true, data: { ...terms, content: "#### 1. Scope\n\nThese Terms apply." } } }) },
@@ -43,14 +46,24 @@ describe("Policies page", () => {
         path: "/api/v1/policies/admin/revisions",
         respond: ({ body }) => {
           created = body as Record<string, unknown>;
-          return { body: { success: true, data: { ...terms, ...created, policyRevisionId: "r-1", status: "DRAFT", content: created.content, contentHash: "def" } } };
+          const draft = { ...terms, ...created, policyRevisionId: "r-1", status: "DRAFT", content: created.content, contentHash: "def" };
+          revisions = [draft, ...revisions];
+          return { body: { success: true, data: draft } };
         },
       },
-      { method: "POST", path: "/api/v1/policies/admin/revisions/r-1/publish", respond: ({ url }) => ((published = url.pathname), { body: { success: true, data: null } }) },
+      { method: "POST", path: "/api/v1/policies/admin/revisions/r-1/publish", respond: ({ url }) => {
+          published = url.pathname;
+          revisions = revisions.map((r) => (r.policyRevisionId === "r-1" ? { ...r, status: "PUBLISHED" } : r));
+          return { body: { success: true, data: null } };
+        },
+      },
     ]);
     const user = userEvent.setup();
     renderWithApp(routes, "/policies");
     expect(await screen.findByText("Platform Terms of Use")).toBeInTheDocument();
+    const pendingList = await screen.findByRole("list", { name: "Draft and scheduled revisions" });
+    expect(within(pendingList).getByText("Scheduled terms")).toBeInTheDocument();
+    expect(within(pendingList).getByText(/^Scheduled$/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "New revision of Platform Terms of Use" }));
     const dialog = await screen.findByRole("dialog", { name: /New revision/ });
     expect(within(dialog).getByLabelText(/Revision/)).toHaveValue("Rev. 01");
@@ -63,11 +76,14 @@ describe("Policies page", () => {
     expect(created).toMatchObject({ policyCode: "STK-POL-WEB-001", revisionCode: "Rev. 01", languageCode: "en", title: "STOCKOUT Platform Terms of Use", content: "#### 1. Scope\n\nThese Terms apply. Updated." });
     expect(String(created!.effectiveFromUtc)).toMatch(/^2026-1[01]-\d\dT\d\d:00:00\.000Z$/);
 
-    const drafts = await screen.findByRole("list", { name: "Draft revisions" });
-    await user.click(within(drafts).getByRole("button", { name: /Publish/ }));
+    const list = screen.getByRole("list", { name: "Draft and scheduled revisions" });
+    const draftRow = (await within(list).findByText(/Rev\. 01/)).closest("li")!;
+    expect(localStorage.getItem("stockout.admin.policy-drafts")).toBeNull();
+    await user.click(within(draftRow).getByRole("button", { name: /Publish/ }));
     await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Publish" }));
     await waitFor(() => expect(published).toBe("/api/v1/policies/admin/revisions/r-1/publish"));
-    await waitFor(() => expect(screen.queryByRole("list", { name: "Draft revisions" })).not.toBeInTheDocument());
+    await waitFor(() => expect(within(screen.getByRole("list", { name: "Draft and scheduled revisions" })).queryByText(/Rev\. 01/)).not.toBeInTheDocument());
+    expect(within(screen.getByRole("list", { name: "Draft and scheduled revisions" })).getByText("Scheduled terms")).toBeInTheDocument();
   });
 
   it("is read-only without manage/publish permissions", async () => {
@@ -76,5 +92,7 @@ describe("Policies page", () => {
     renderWithApp(routes, "/policies");
     expect(await screen.findByText("Platform Terms of Use")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "New revision" })).not.toBeInTheDocument();
+    // policies.manage gates GET /policies/admin/revisions, so view-only admins don't request it.
+    expect(screen.queryByRole("heading", { name: "Draft and scheduled revisions" })).not.toBeInTheDocument();
   });
 });

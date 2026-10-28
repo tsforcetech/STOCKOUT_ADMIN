@@ -15,5 +15,13 @@ export const policiesService = {
     unwrapData<PolicyDetailResponse>(await http.get<Envelope<PolicyDetailResponse>>(`/api/v1/policies/${seg(code)}?lang=${seg(lang)}`, { signal })),
   createRevision: async (body: CreatePolicyRevisionRequest) =>
     unwrapData<PolicyDetailResponse>(await http.post<Envelope<PolicyDetailResponse>>("/api/v1/policies/admin/revisions", body)),
+  /** POL-1: every revision (any language) newest first, filtered by `status` (DRAFT | SCHEDULED | PUBLISHED | SUPERSEDED) and/or `policyCode`. policies.manage. */
+  listRevisions: async (filter: { status?: string; policyCode?: string } = {}, signal?: AbortSignal) => {
+    const q = new URLSearchParams();
+    if (filter.status) q.set("status", filter.status);
+    if (filter.policyCode) q.set("policyCode", filter.policyCode);
+    const qs = q.toString();
+    return expectArray<PolicyDetailResponse>(unwrapData(await http.get<Envelope<PolicyDetailResponse[]>>(`/api/v1/policies/admin/revisions${qs ? `?${qs}` : ""}`, { signal })));
+  },
   publishRevision: async (revisionId: string) => unwrapData<unknown>(await http.post<Envelope<unknown>>(`/api/v1/policies/admin/revisions/${seg(revisionId)}/publish`)),
 };

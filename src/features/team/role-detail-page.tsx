@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
-import { ArrowLeftIcon, PencilSimpleIcon, ProhibitIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, ArrowLeftIcon, PencilSimpleIcon, ProhibitIcon } from "@phosphor-icons/react";
 import { SectionCard } from "@/components/common/section-card";
 import { DetailList } from "@/components/common/page-header";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -29,6 +29,7 @@ function RoleDetailContent() {
   const catalog = usePermissionsQuery(canEditPerms);
   const [editing, setEditing] = React.useState(false);
   const [deactivating, setDeactivating] = React.useState(false);
+  const [reactivating, setReactivating] = React.useState(false);
 
   const deactivate = useApiMutation({
     mutationFn: () => platformService.deactivateRole(roleId),
@@ -36,6 +37,13 @@ function RoleDetailContent() {
     toastOnError: false,
     successMessage: "Role deactivated.",
     onSuccess: () => setDeactivating(false),
+  });
+  const reactivate = useApiMutation({
+    mutationFn: () => platformService.reactivateRole(roleId),
+    invalidate: [teamKeys.roles, teamKeys.role(roleId)],
+    toastOnError: false,
+    successMessage: "Role reactivated.",
+    onSuccess: () => setReactivating(false),
   });
 
   if (role.isLoading) return <PageSkeleton />;
@@ -83,6 +91,11 @@ function RoleDetailContent() {
                 <ProhibitIcon /> Deactivate
               </Button>
             )}
+            {(can(P.ROLES_ACTIVATE) || can(P.ROLES_UPDATE)) && !r.isActive && !r.isSystemRole && (
+              <Button onClick={() => setReactivating(true)}>
+                <ArrowCounterClockwiseIcon /> Reactivate
+              </Button>
+            )}
           </div>
         </div>
         <div className="mt-6">
@@ -122,10 +135,20 @@ function RoleDetailContent() {
         open={deactivating}
         onOpenChange={setDeactivating}
         title="Deactivate role?"
-        description={`"${r.name}" will stop granting its permissions and can no longer be assigned. There is no reactivate endpoint.`}
+        description={`"${r.name}" will stop granting its permissions and can no longer be assigned until it is reactivated.`}
         confirmLabel="Deactivate"
         loading={deactivate.isPending}
         onConfirm={() => deactivate.mutate(undefined, { onError: (e) => toast.error(userOrgErrorMessage(e)) })}
+      />
+      <ConfirmDialog
+        open={reactivating}
+        onOpenChange={setReactivating}
+        tone="primary"
+        title="Reactivate role?"
+        description={`"${r.name}" will grant its permissions again to anyone who still holds it, and can be assigned again.`}
+        confirmLabel="Reactivate"
+        loading={reactivate.isPending}
+        onConfirm={() => reactivate.mutate(undefined, { onError: (e) => toast.error(userOrgErrorMessage(e)) })}
       />
     </div>
   );

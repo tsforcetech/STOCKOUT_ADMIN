@@ -290,6 +290,8 @@ function SellerProfile({ seller: s }: { seller: MarketplaceSellerDto }) {
                 label: "VAT",
                 value: d?.isVatRegistered ? `Registered · TRN ${text(d.taxRegistrationNumber)}` : d?.hasVatDeclaration ? "Not registered (declaration confirmed)" : "—",
               },
+              // L16: the server fills `email` from the business contact email, else the signatory email; empty when neither is set.
+              { label: "Contact email", value: d?.email ? <a href={`mailto:${d.email}`} className="underline underline-offset-4">{d.email}</a> : "Not provided by the seller" },
               { label: "Signatory", value: text([d?.signatoryName, d?.signatoryAuthorityRole].filter(Boolean).join(" · ")) },
               { label: "Signatory contact", value: text([d?.signatoryEmail, d?.signatoryPhone].filter(Boolean).join(" · ")) },
               { label: "Business contact", value: text([d?.businessContactEmail, d?.businessContactPhone].filter(Boolean).join(" · ")) },

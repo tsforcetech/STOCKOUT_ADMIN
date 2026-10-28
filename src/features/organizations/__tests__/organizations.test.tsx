@@ -61,6 +61,49 @@ describe("Admin business changes", () => {
   });
 });
 
+describe("Business-change evidence (ORG-3)", () => {
+  const doc = { documentId: "d-1", requestId: "r-1", organizationId: "o-1", documentType: "BANK_LETTER", mediaAssetId: "m-1", fileName: "bank-letter.pdf", fileSize: 1000, mimeType: "application/pdf", createdAtUtc: "2026-10-26T18:00:00" };
+  const setup = (respond: () => { status?: number; body: unknown }) => {
+    sessionStorage.setItem("stockout.admin.rt", "rt-1");
+    const calls: string[] = [];
+    mockFetch([
+      ...sessionRoutes(["organizations.business_changes.view"]),
+      { method: "GET", path: "/api/v1/admin/organizations/business-changes", respond: () => ok({ items: [{ ...change, documents: [doc] }], totalCount: 1, pageNumber: 1, pageSize: 100 }) },
+      { method: "GET", path: "/api/v1/admin/organizations/business-changes/r-1/documents/d-1/download-url", respond: ({ url }) => (calls.push(url.pathname), respond()) },
+    ]);
+    return calls;
+  };
+
+  it("asks for a fresh signed link when the reviewer opens a file", async () => {
+    const tab = { opener: {}, location: { href: "" }, close: vi.fn() };
+    const open = vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
+    const calls = setup(() => ok({ documentId: "d-1", requestId: "r-1", mediaAssetId: "m-1", documentType: "BANK_LETTER", downloadUrl: "https://files.example/signed", expiresAtUtc: "2030-01-01T00:00:00Z" }));
+    const user = userEvent.setup();
+    renderWithApp(routes("/business-changes", <BusinessChangesPage />), "/business-changes");
+    await user.click(await screen.findByText("Sharaco Trading LLC"));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Open bank-letter.pdf" }));
+    await waitFor(() => expect(tab.location.href).toBe("https://files.example/signed"));
+    expect(tab.opener).toBeNull();
+    expect(calls).toEqual(["/api/v1/admin/organizations/business-changes/r-1/documents/d-1/download-url"]);
+    open.mockRestore();
+  });
+
+  it("explains a missing file instead of opening a blank tab", async () => {
+    const tab = { opener: {}, location: { href: "" }, close: vi.fn() };
+    const open = vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
+    setup(() => ({ status: 404, body: { success: false, error: { code: "DOCUMENT_FILE_NOT_FOUND", message: "The physical file for this document could not be found." } } }));
+    const user = userEvent.setup();
+    renderWithApp(routes("/business-changes", <BusinessChangesPage />), "/business-changes");
+    await user.click(await screen.findByText("Sharaco Trading LLC"));
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: "Open bank-letter.pdf" }));
+    expect(await within(dialog).findByText(/File not found/)).toBeInTheDocument();
+    expect(tab.close).toHaveBeenCalled();
+    open.mockRestore();
+  });
+});
+
 describe("Admin UAE calendar", () => {
   it("confirms a provisional holiday only with complete official evidence and attestation", async () => {
     sessionStorage.setItem("stockout.admin.rt", "rt-1");

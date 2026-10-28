@@ -3,6 +3,7 @@ import { expectArray, unwrapData, type Envelope } from "@/lib/api/envelope";
 import type {
   AdminRejectBusinessChangeRequest,
   AdminReviewBusinessChangeRequest,
+  BusinessChangeDocumentDownloadUrlResponse,
   BusinessChangePage,
   BusinessChangeQueueQuery,
   BusinessChangeRequestResponse,
@@ -33,6 +34,15 @@ export const organizationsService = {
     unwrapData<BusinessChangeRequestResponse>(await http.post<Envelope<BusinessChangeRequestResponse>>(`${BC}/${encodeURIComponent(id)}/approve`, body)),
   rejectBusinessChange: async (id: string, body: AdminRejectBusinessChangeRequest) =>
     unwrapData<BusinessChangeRequestResponse>(await http.post<Envelope<BusinessChangeRequestResponse>>(`${BC}/${encodeURIComponent(id)}/reject`, body)),
+
+  /**
+   * ORG-3: short-lived signed link for one evidence file (organizations.business_changes.view). Never cached or stored.
+   * 404 BUSINESS_CHANGE_DOCUMENT_NOT_FOUND / DOCUMENT_FILE_NOT_FOUND; MEDIA_SERVICE_UNAVAILABLE / _TIMEOUT / _ERROR otherwise.
+   */
+  businessChangeDocumentUrl: async (requestId: string, documentId: string) =>
+    unwrapData<BusinessChangeDocumentDownloadUrlResponse>(
+      await http.get<Envelope<BusinessChangeDocumentDownloadUrlResponse>>(`${BC}/${encodeURIComponent(requestId)}/documents/${encodeURIComponent(documentId)}/download-url`),
+    ),
 
   calendarConfig: async (signal?: AbortSignal) => unwrapData<CalendarConfigurationDto>(await http.get<Envelope<CalendarConfigurationDto>>(`${CAL}/configuration`, { signal })),
   updateCalendarConfig: async (body: UpdateCalendarConfigRequest) =>

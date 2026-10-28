@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { PaperPlaneTiltIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
+import { PaperPlaneTiltIcon, PlusIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/page-header";
 import { RefreshButton, RowAction, SectionCard, Toolbar } from "@/components/common/section-card";
@@ -25,52 +25,22 @@ import { PolicyMarkdown } from "./policy-markdown";
 
 /**
  * PA-1A policy administration. Lists the published revisions (GET /policies), shows their text, creates draft
- * revisions (policies.manage) and publishes them (policies.publish). The API has no "list drafts" endpoint, so drafts
- * created from this browser are remembered locally until they're published or removed.
+ * revisions (policies.manage) and publishes them (policies.publish). Draft and scheduled revisions come from
+ * GET /policies/admin/revisions (POL-1), so every admin sees the same list.
  */
 const LANGS = [
   { value: "en", label: "English" },
   { value: "ar", label: "Arabic" },
 ] as const;
-const DRAFTS_KEY = "stockout.admin.policy-drafts";
-const keys = { list: (lang: string) => ["policies", "list", lang] as const, detail: (code: string, lang: string) => ["policies", "detail", code, lang] as const };
-
-interface DraftRevision {
-  policyRevisionId: string;
-  policyCode: string;
-  revisionCode: string;
-  languageCode: string;
-  effectiveFromUtc: string;
-  title: string;
-  contentHash: string;
-  createdAtUtc: string;
-}
-
-function readDrafts(): DraftRevision[] {
-  try {
-    const v = JSON.parse(localStorage.getItem(DRAFTS_KEY) ?? "[]") as unknown;
-    return Array.isArray(v) ? (v as DraftRevision[]).filter((d) => typeof d?.policyRevisionId === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function useDrafts() {
-  const [drafts, setDrafts] = React.useState<DraftRevision[]>(readDrafts);
-  const save = React.useCallback((next: DraftRevision[]) => {
-    setDrafts(next);
-    try {
-      localStorage.setItem(DRAFTS_KEY, JSON.stringify(next));
-    } catch {
-      /* storage unavailable: keep in memory */
-    }
-  }, []);
-  return {
-    drafts,
-    add: (d: DraftRevision) => save([d, ...readDrafts().filter((x) => x.policyRevisionId !== d.policyRevisionId)]),
-    remove: (id: string) => save(readDrafts().filter((x) => x.policyRevisionId !== id)),
-  };
-}
+/** Revisions that publish can still act on (PolicyService.PublishRevisionAsync accepts DRAFT or SCHEDULED). */
+const PENDING_STATUSES = new Set(["DRAFT", "SCHEDULED"]);
+/** Older builds remembered drafts in this browser key; the server list replaces it. */
+const LEGACY_DRAFTS_KEY = "stockout.admin.policy-drafts";
+const keys = {
+  list: (lang: string) => ["policies", "list", lang] as const,
+  detail: (code: string, lang: string) => ["policies", "detail", code, lang] as const,
+  revisions: ["policies", "revisions"] as const,
+};
 
 function PoliciesContent() {
   const { can } = useAccess();
@@ -79,16 +49,29 @@ function PoliciesContent() {
   const list = useQuery({ queryKey: keys.list(lang), queryFn: ({ signal }) => policiesService.list(lang, signal) });
   const [viewing, setViewing] = React.useState<PolicySummaryResponse | null>(null);
   const [creating, setCreating] = React.useState<PolicySummaryResponse | "new" | null>(null);
-  const [publishing, setPublishing] = React.useState<DraftRevision | null>(null);
-  const { drafts, add, remove } = useDrafts();
+  const [publishing, setPublishing] = React.useState<PolicyDetailResponse | null>(null);
+  const [viewingRevision, setViewingRevision] = React.useState<PolicyDetailResponse | null>(null);
   const canManage = can(P.POLICIES_MANAGE);
   const canPublish = can(P.POLICIES_PUBLISH);
+  const revisions = useQuery({
+    queryKey: keys.revisions,
+    queryFn: ({ signal }) => policiesService.listRevisions({}, signal),
+    enabled: canManage,
+  });
+  const pending = (revisions.data ?? []).filter((r) => PENDING_STATUSES.has(r.status.toUpperCase()));
+
+  React.useEffect(() => {
+    try {
+      localStorage.removeItem(LEGACY_DRAFTS_KEY);
+    } catch {
+      /* storage unavailable */
+    }
+  }, []);
 
   const publish = useApiMutation({
     toastOnError: false,
-    mutationFn: (d: DraftRevision) => policiesService.publishRevision(d.policyRevisionId),
+    mutationFn: (d: PolicyDetailResponse) => policiesService.publishRevision(d.policyRevisionId),
     onSuccess: (_r, d) => {
-      remove(d.policyRevisionId);
       setPublishing(null);
       toast.success(`${d.policyCode} ${d.revisionCode} published. Users will be asked to accept it.`);
       void qc.invalidateQueries({ queryKey: ["policies"] });
@@ -145,33 +128,43 @@ function PoliciesContent() {
         }
       />
       <div className="space-y-4">
-        {drafts.length > 0 && (
+        {canManage && (
           <SectionCard>
-            <h2 className="font-heading text-lg font-bold text-foreground">Draft revisions</h2>
-            <p className="mb-3 text-sm text-muted-foreground">Created from this browser and not yet published. The API doesn&apos;t list drafts, so other admins won&apos;t see these here.</p>
-            <ul className="divide-y divide-border rounded-lg border border-border" aria-label="Draft revisions">
-              {drafts.map((d) => (
-                <li key={d.policyRevisionId} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground">
-                      {d.title} <span className="text-muted-foreground">· {d.revisionCode}</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {d.policyCode} · {d.languageCode.toUpperCase()} · Effective {formatDateTime(d.effectiveFromUtc)} · Created {formatDateTime(d.createdAtUtc)}
-                    </p>
-                  </div>
-                  <StatusBadge value="DRAFT" />
-                  {canPublish && (
-                    <Button size="sm" onClick={() => setPublishing(d)}>
-                      <PaperPlaneTiltIcon /> Publish
-                    </Button>
-                  )}
-                  <RowAction label="Remove from this list" tone="danger" onClick={() => remove(d.policyRevisionId)}>
-                    <TrashIcon />
-                  </RowAction>
-                </li>
-              ))}
-            </ul>
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h2 className="font-heading text-lg font-bold text-foreground">Draft and scheduled revisions</h2>
+                <p className="text-sm text-muted-foreground">Not yet in force. Every admin with policy access sees this list.</p>
+              </div>
+              <RefreshButton onClick={() => void revisions.refetch()} spinning={revisions.isFetching} />
+            </div>
+            {revisions.error ? (
+              <ApiErrorNotice error={revisions.error} />
+            ) : revisions.isLoading ? (
+              <Skeleton className="h-16 w-full" />
+            ) : pending.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">No draft or scheduled revisions.</p>
+            ) : (
+              <ul className="divide-y divide-border rounded-lg border border-border" aria-label="Draft and scheduled revisions">
+                {pending.map((d) => (
+                  <li key={d.policyRevisionId} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+                    <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setViewingRevision(d)}>
+                      <p className="font-medium text-foreground">
+                        {d.title} <span className="text-muted-foreground">· {d.revisionCode}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {d.policyCode} · {d.languageCode.toUpperCase()} · Effective {formatDateTime(d.effectiveFromUtc)}
+                      </p>
+                    </button>
+                    <StatusBadge value={d.status} />
+                    {canPublish && (
+                      <Button size="sm" onClick={() => setPublishing(d)}>
+                        <PaperPlaneTiltIcon /> Publish
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </SectionCard>
         )}
 
@@ -206,23 +199,15 @@ function PoliciesContent() {
       </div>
 
       <PolicyViewDialog policy={viewing} lang={lang} onClose={() => setViewing(null)} />
+      <RevisionViewDialog revision={viewingRevision} onClose={() => setViewingRevision(null)} />
       <CreateRevisionDialog
         open={creating !== null}
         base={creating === "new" ? null : creating}
         policies={list.data ?? []}
         lang={lang}
         onClose={() => setCreating(null)}
-        onCreated={(d) => {
-          add({
-            policyRevisionId: d.policyRevisionId,
-            policyCode: d.policyCode,
-            revisionCode: d.revisionCode,
-            languageCode: d.languageCode,
-            effectiveFromUtc: d.effectiveFromUtc,
-            title: d.title,
-            contentHash: d.contentHash,
-            createdAtUtc: new Date().toISOString(),
-          });
+        onCreated={() => {
+          void qc.invalidateQueries({ queryKey: keys.revisions });
           setCreating(null);
         }}
       />
@@ -243,9 +228,9 @@ function PoliciesContent() {
           publish.mutate(publishing, {
             onError: (e) => {
               if (isApiError(e) && (e.code === "REVISION_NOT_IN_DRAFT_STATUS" || e.code === "REVISION_NOT_FOUND")) {
-                remove(publishing.policyRevisionId);
                 setPublishing(null);
-                toast.error("This revision is no longer a draft (already published or removed), so it was taken off the list.");
+                void qc.invalidateQueries({ queryKey: keys.revisions });
+                toast.error("This revision is no longer a draft (already published or removed). The list has been refreshed.");
               } else toast.error(getErrorMessage(e));
             },
           })
@@ -275,6 +260,24 @@ function PolicyViewDialog({ policy, lang, onClose }: { policy: PolicySummaryResp
               <p className="mt-6 break-all border-t border-border pt-3 text-xs text-muted-foreground">SHA-256: {detail.data.contentHash}</p>
             </>
           )}
+        </DialogContent>
+      )}
+    </Dialog>
+  );
+}
+
+/** Draft/scheduled text comes with the revision list, so no extra request is needed. */
+function RevisionViewDialog({ revision, onClose }: { revision: PolicyDetailResponse | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!revision} onOpenChange={(o) => !o && onClose()}>
+      {revision && (
+        <DialogContent
+          size="xl"
+          title={revision.title}
+          description={`${revision.policyCode} · ${revision.revisionCode} · ${revision.languageCode.toUpperCase()} · ${revision.status} · Effective ${formatDateTime(revision.effectiveFromUtc)}`}
+        >
+          <PolicyMarkdown content={revision.content} />
+          <p className="mt-6 break-all border-t border-border pt-3 text-xs text-muted-foreground">SHA-256: {revision.contentHash}</p>
         </DialogContent>
       )}
     </Dialog>
