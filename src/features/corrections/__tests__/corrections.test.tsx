@@ -105,6 +105,16 @@ describe("E5 propose corrections", () => {
   });
 });
 
+describe("E5 stale inspected version", () => {
+  it("explains that a superseded version needs a new inspection", async () => {
+    localStorage.setItem("stockout.admin.rt", "rt-1");
+    mockFetch(routes(["inspections.view", "inspections.override"], { ...snapshot, baseVersionStatus: "SUPERSEDED" }));
+    render();
+    expect(await screen.findByText(/Corrections need an inspection of the current version/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Propose corrections/ })).toBeDisabled();
+  });
+});
+
 describe("E5 before/after table", () => {
   it("shows original and proposed values and flags seller-acceptance rows", async () => {
     mockFetch([

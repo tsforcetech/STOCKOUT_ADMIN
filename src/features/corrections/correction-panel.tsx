@@ -28,6 +28,8 @@ import { correctionKeys, useConditionGradeNames, useCorrectionsQuery } from "./q
 import { CorrectionStatusBadge, FIELD_LABEL } from "./shared";
 
 const PROPOSE_STATES = ["IN_PROGRESS", "COMPLETED"];
+/** The inspected version must still be the live one or the open draft (MARKETPLACE_CORRECTION_BASE_VERSION_NOT_CURRENT). */
+const STALE_BASE = ["SUPERSEDED", "ARCHIVED", "REJECTED"];
 
 /** Inspection detail → current listing values, existing proposals and "Propose corrections" (E5). */
 export function CorrectionPanel({ inspection }: { inspection: InspectionDetailDto }) {
@@ -43,7 +45,8 @@ export function CorrectionPanel({ inspection }: { inspection: InspectionDetailDt
   const proposals = useCorrectionsQuery({ inspectionId: inspection.inspectionId, page: 1, pageSize: 20 });
   const s = snapshot.data;
 
-  const canPropose = isAssignee && can(P.INSPECTIONS_OVERRIDE) && PROPOSE_STATES.includes(inspection.status) && !!s && !s.hasActiveCorrection;
+  const staleBase = !!s && STALE_BASE.includes(s.baseVersionStatus);
+  const canPropose = isAssignee && can(P.INSPECTIONS_OVERRIDE) && PROPOSE_STATES.includes(inspection.status) && !!s && !s.hasActiveCorrection && !staleBase;
   const why = !isAssignee
     ? "Only the inspector assigned to this inspection can propose corrections."
     : !can(P.INSPECTIONS_OVERRIDE)
@@ -52,7 +55,9 @@ export function CorrectionPanel({ inspection }: { inspection: InspectionDetailDt
         ? "Corrections can be proposed once the inspection is in progress or completed."
         : s?.hasActiveCorrection
           ? "This listing already has an open proposal."
-          : null;
+          : staleBase
+            ? "The inspected version has since been replaced by a newer one. Corrections need an inspection of the current version."
+            : null;
 
   return (
     <SectionCard>
