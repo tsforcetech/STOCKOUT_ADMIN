@@ -16,9 +16,9 @@ import { useApiMutation } from "@/hooks/use-api-mutation";
 import { PERMISSIONS as P } from "@/api/types/user-organization";
 import { WITHDRAWABLE, type AdminListingCorrectionDto } from "@/api/types/listing-corrections";
 import { listingCorrectionsService } from "@/services/listing-corrections.service";
-import { ApiErrorNotice, Notice, PanelTitle, PersonText, fmtUtc, isGuid, shortId, useSellerNames, useUserNames } from "@/features/listings/shared";
+import { Notice, PanelTitle, PersonText, fmtUtc, isGuid, shortId, useSellerNames, useUserNames } from "@/features/listings/shared";
 import { correctionKeys } from "./queries";
-import { AuditTimeline, ChangesTable, CorrectionStatusBadge } from "./shared";
+import { AuditTimeline, ChangesTable, CorrectionError, CorrectionStatusBadge } from "./shared";
 
 function Actions({ c }: { c: AdminListingCorrectionDto }) {
   const { can } = useAccess();
@@ -73,7 +73,7 @@ function Actions({ c }: { c: AdminListingCorrectionDto }) {
         <FormField label="Reason" htmlFor="w-reason" required>
           <Textarea rows={3} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={2000} />
         </FormField>
-        {withdraw.error ? <ApiErrorNotice className="mt-2" error={withdraw.error} /> : null}
+        {withdraw.error ? <div className="mt-2"><CorrectionError error={withdraw.error} /></div> : null}
       </ConfirmDialog>
       <ConfirmDialog
         open={open === "submit"}
@@ -85,7 +85,7 @@ function Actions({ c }: { c: AdminListingCorrectionDto }) {
         loading={submit.isPending}
         onConfirm={() => submit.mutate()}
       >
-        {submit.error ? <ApiErrorNotice error={submit.error} /> : null}
+        <CorrectionError error={submit.error} />
       </ConfirmDialog>
     </>
   );

@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { Badge } from "@/components/ui/misc";
 import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { listingCorrectionsService } from "@/services/listing-corrections.service";
+import { isApiError } from "@/lib/api/errors";
 import type { CorrectionFieldComparisonDto, CorrectionStatus } from "@/api/types/listing-corrections";
 import { PanelTitle, PersonText, fmtUtc, useUserNames } from "@/features/listings/shared";
 import { correctionKeys, useConditionGradeNames } from "./queries";
@@ -136,5 +137,37 @@ export function AuditTimeline({ correctionId }: { correctionId: string }) {
         </ol>
       )}
     </section>
+  );
+}
+
+const CODE_MESSAGES: Record<string, string> = {
+  MARKETPLACE_CORRECTION_ALREADY_ACTIVE: "This listing already has an open proposal. Open it from the inspection page, or withdraw it first.",
+  MARKETPLACE_CORRECTION_BASE_VERSION_NOT_CURRENT: "The inspected version is no longer current. Corrections need an inspection of the current version.",
+  MARKETPLACE_CORRECTION_LISTING_DRAFT_CONFLICT: "The seller has an open draft or another version in review. Try again once that is published, rejected or withdrawn.",
+  MARKETPLACE_CORRECTION_MODERATION_ENTRY_BLOCKED: "This proposal can't enter moderation — the version it was based on has been replaced or the listing isn't published. Withdraw it and propose again from a new inspection.",
+  MARKETPLACE_CORRECTION_NO_CHANGES: "Change at least one field.",
+  MARKETPLACE_CORRECTION_VERSION_CONFLICT: "This proposal changed since you opened it. Refresh and try again.",
+  MARKETPLACE_CORRECTION_TRANSITION_INVALID: "That isn't possible in the proposal's current state.",
+  MARKETPLACE_CORRECTION_WITHDRAW_FORBIDDEN: "Only the inspector who proposed it can withdraw this proposal.",
+  MARKETPLACE_CORRECTION_INSPECTION_STATE_INVALID: "Corrections can be proposed only while the inspection is in progress or completed.",
+  MARKETPLACE_INSPECTOR_NOT_ASSIGNED: "Only the inspector assigned to this inspection can propose corrections.",
+  MARKETPLACE_CORRECTION_MEDIA_LIMIT_EXCEEDED: "Too many photos or documents.",
+  MARKETPLACE_LISTING_PRICE_INVALID: "Enter a price above 0 with at most 4 decimal places.",
+  MARKETPLACE_INVENTORY_QUANTITY_BELOW_RESERVED: "Quantity can't be below the reserved quantity.",
+};
+
+/** Plain-language message for E5 errors (the backend message often repeats the code). */
+export function correctionErrorMessage(error: unknown): string {
+  if (isApiError(error) && error.code && CODE_MESSAGES[error.code]) return CODE_MESSAGES[error.code]!;
+  return isApiError(error) ? error.message : "Something went wrong. Try again.";
+}
+
+export function CorrectionError({ error }: { error: unknown }) {
+  if (!error) return null;
+  return (
+    <div role="alert" className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger-soft-foreground">
+      {correctionErrorMessage(error)}
+      {isApiError(error) && error.code && <span className="mt-0.5 block font-mono text-[11px] opacity-70">{error.code}</span>}
+    </div>
   );
 }

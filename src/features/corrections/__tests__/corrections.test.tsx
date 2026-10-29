@@ -115,6 +115,15 @@ describe("E5 stale inspected version", () => {
   });
 });
 
+describe("E5 error messages", () => {
+  it("explains a blocked moderation entry in plain words", async () => {
+    const { correctionErrorMessage } = await import("../shared");
+    const { ApiError } = await import("@/lib/api/errors");
+    const e = new ApiError({ kind: "conflict", status: 409, code: "MARKETPLACE_CORRECTION_MODERATION_ENTRY_BLOCKED", message: "MARKETPLACE_CORRECTION_MODERATION_ENTRY_BLOCKED" });
+    expect(correctionErrorMessage(e)).toMatch(/Withdraw it and propose again/);
+  });
+});
+
 describe("E5 before/after table", () => {
   it("shows original and proposed values and flags seller-acceptance rows", async () => {
     mockFetch([

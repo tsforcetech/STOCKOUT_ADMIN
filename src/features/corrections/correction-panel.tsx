@@ -25,7 +25,7 @@ import { ApiErrorNotice, Notice, PanelTitle, fmtUtc, shortId } from "@/features/
 import { MediaTile } from "@/features/listings/review/version-comparison";
 import { useInspectorRights } from "@/features/inspections/detail/actions";
 import { correctionKeys, useConditionGradeNames, useCorrectionsQuery } from "./queries";
-import { CorrectionStatusBadge, FIELD_LABEL } from "./shared";
+import { CorrectionError, CorrectionStatusBadge, FIELD_LABEL } from "./shared";
 
 const PROPOSE_STATES = ["IN_PROGRESS", "COMPLETED"];
 /** The inspected version must still be the live one or the open draft (MARKETPLACE_CORRECTION_BASE_VERSION_NOT_CURRENT). */
@@ -280,7 +280,7 @@ function ProposeDialog({ snapshot: s, onClose }: { snapshot: CorrectionSnapshotR
       >
         <div className="space-y-4">
           {error && <Notice tone="danger">{error}</Notice>}
-          {propose.error ? <ApiErrorNotice error={propose.error} /> : null}
+          <CorrectionError error={propose.error} />
           <FormField label="Title" htmlFor="c-title">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
           </FormField>
