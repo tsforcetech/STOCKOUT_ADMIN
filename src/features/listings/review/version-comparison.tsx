@@ -330,7 +330,7 @@ export function AttributesComparison({
  * Reviewer photo (F2-E). Tries the detail's short-lived URL, then a freshly issued one (they expire after 15 minutes),
  * then the public route (works once the listing is live). Reports whether it could be shown.
  */
-function MediaTile({ listingId, versionId, media: m, onState }: { listingId: string; versionId: string; media: MediaAssetDto; onState: (id: string, ok: boolean) => void }) {
+export function MediaTile({ listingId, versionId, media: m, onState }: { listingId: string; versionId: string; media: MediaAssetDto; onState: (id: string, ok: boolean) => void }) {
   const publicUrl = `${env.apiBaseUrl}/api/v1/files/${encodeURIComponent(m.fileAssetId)}/download`;
   const [src, setSrc] = React.useState<string>(() => (urlFresh(m.downloadUrl, m.expiresAtUtc) ? m.downloadUrl : ""));
   const [stage, setStage] = React.useState<"signed" | "refreshed" | "public">("signed");

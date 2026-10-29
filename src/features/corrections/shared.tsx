@@ -1,0 +1,140 @@
+import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { StatusBadge } from "@/components/common/status-badge";
+import { Badge } from "@/components/ui/misc";
+import { EmptyState, ErrorState } from "@/components/feedback/states";
+import { listingCorrectionsService } from "@/services/listing-corrections.service";
+import type { CorrectionFieldComparisonDto, CorrectionStatus } from "@/api/types/listing-corrections";
+import { PanelTitle, PersonText, fmtUtc, useUserNames } from "@/features/listings/shared";
+import { correctionKeys, useConditionGradeNames } from "./queries";
+
+export const FIELD_LABEL: Record<string, string> = {
+  title: "Title",
+  description: "Description",
+  condition: "Condition",
+  grade: "Grade",
+  price: "Price",
+  quantity: "Quantity (on hand)",
+  media: "Photos & documents",
+};
+
+export const STATUS_LABEL: Record<CorrectionStatus, string> = {
+  AWAITING_SELLER_DECISION: "Awaiting seller",
+  READY_FOR_MODERATION: "Ready for moderation",
+  SELLER_ACCEPTED: "Seller accepted",
+  SUBMITTED_TO_MODERATION: "In moderation",
+  SELLER_DECLINED: "Seller declined",
+  WITHDRAWN: "Withdrawn",
+};
+
+export function CorrectionStatusBadge({ status }: { status: CorrectionStatus | string }) {
+  return <StatusBadge value={status} label={STATUS_LABEL[status as CorrectionStatus] ?? undefined} />;
+}
+
+/** before/after come back as strings; condition and grade are ids. */
+function Value({ field, value, names }: { field: string; value: string | null; names: Map<string, string> }) {
+  if (value === null || value === "") return <span className="text-muted-foreground">—</span>;
+  if (field === "condition" || field === "grade") return <>{names.get(value.toLowerCase()) ?? value}</>;
+  return <span className="whitespace-pre-wrap break-words">{value}</span>;
+}
+
+/** Original vs proposed values. Rows the seller must accept are highlighted. */
+export function ChangesTable({ changes }: { changes: CorrectionFieldComparisonDto[] }) {
+  const names = useConditionGradeNames();
+  if (changes.length === 0) return <EmptyState title="No field changes" description="This proposal does not change any listing field." />;
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <caption className="sr-only">Original and proposed values</caption>
+        <thead>
+          <tr className="border-b border-border text-left text-xs text-muted-foreground">
+            <th className="py-2 pr-3 font-medium">Field</th>
+            <th className="py-2 pr-3 font-medium">Original</th>
+            <th className="py-2 pr-3 font-medium">Proposed</th>
+            <th className="py-2 font-medium">Seller must accept</th>
+          </tr>
+        </thead>
+        <tbody>
+          {changes.map((c) => (
+            <tr key={c.field} className={c.requiresSellerAcceptance ? "border-b border-border bg-warning-soft/40" : "border-b border-border"}>
+              <th scope="row" className="py-2 pr-3 text-left align-top font-medium text-foreground">
+                {FIELD_LABEL[c.field] ?? c.field}
+              </th>
+              <td className="py-2 pr-3 align-top text-muted-foreground line-through decoration-muted-foreground/40">
+                <Value field={c.field} value={c.before} names={names} />
+              </td>
+              <td className="py-2 pr-3 align-top font-medium text-foreground">
+                <Value field={c.field} value={c.after} names={names} />
+              </td>
+              <td className="py-2 align-top">{c.requiresSellerAcceptance ? <Badge tone="warning">Yes</Badge> : <span className="text-muted-foreground">No</span>}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function JsonBlock({ label, json }: { label: string; json: string | null }) {
+  if (!json) return null;
+  let pretty = json;
+  try {
+    pretty = JSON.stringify(JSON.parse(json), null, 2);
+  } catch {
+    /* show as stored */
+  }
+  return (
+    <details className="mt-1">
+      <summary className="cursor-pointer text-xs text-muted-foreground">{label}</summary>
+      <pre className="mt-1 max-h-64 overflow-auto rounded-md bg-surface-muted p-2 text-[11px] leading-4">{pretty}</pre>
+    </details>
+  );
+}
+
+const EVENT_LABEL: Record<string, string> = {
+  PROPOSED: "Proposed",
+  SELLER_ACCEPTED: "Seller accepted",
+  SELLER_DECLINED: "Seller declined",
+  WITHDRAWN: "Withdrawn",
+  SUBMITTED_TO_MODERATION: "Submitted to moderation",
+};
+
+/** Append-only audit trail (oldest first). */
+export function AuditTimeline({ correctionId }: { correctionId: string }) {
+  const users = useUserNames();
+  const q = useQuery({ queryKey: correctionKeys.audit(correctionId), queryFn: ({ signal }) => listingCorrectionsService.audit(correctionId, signal) });
+  const rows = React.useMemo(() => [...(q.data ?? [])].sort((a, b) => a.occurredAtUtc.localeCompare(b.occurredAtUtc)), [q.data]);
+  return (
+    <section aria-label="Audit trail">
+      <PanelTitle title="Audit trail" description="Every change to this proposal, oldest first. Entries can't be edited or deleted." />
+      {q.error ? (
+        <ErrorState error={q.error} onRetry={() => q.refetch()} />
+      ) : q.isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : rows.length === 0 ? (
+        <EmptyState title="No audit entries" />
+      ) : (
+        <ol className="space-y-3 border-l border-border pl-4">
+          {rows.map((r) => (
+            <li key={r.correctionAuditId} className="relative">
+              <span className="absolute -left-[21px] top-1.5 size-2.5 rounded-full bg-primary" aria-hidden />
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="font-medium text-foreground">{EVENT_LABEL[r.eventType] ?? r.eventType}</span>
+                {r.fromStatus && <CorrectionStatusBadge status={r.fromStatus} />}
+                {r.fromStatus && <span aria-hidden>→</span>}
+                <CorrectionStatusBadge status={r.toStatus} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {fmtUtc(r.occurredAtUtc)} · {r.actorType.toLowerCase()} <PersonText id={r.actorUserId} names={users} />
+              </p>
+              {r.reason && <p className="mt-1 whitespace-pre-wrap text-sm">“{r.reason}”</p>}
+              {r.correctedListingVersionId && <p className="mt-1 text-xs text-muted-foreground">Corrected version {r.correctedListingVersionId}</p>}
+              <JsonBlock label="Before" json={r.beforeJson} />
+              <JsonBlock label="After" json={r.afterJson} />
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}

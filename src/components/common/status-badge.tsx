@@ -35,6 +35,12 @@ const TONES: Record<string, BadgeTone> = {
   PASS: "success",
   FAIL: "danger",
   REINSPECTION_REQUIRED: "warning",
+  AWAITING_SELLER_DECISION: "warning",
+  READY_FOR_MODERATION: "info",
+  SELLER_ACCEPTED: "info",
+  SUBMITTED_TO_MODERATION: "info",
+  SELLER_DECLINED: "danger",
+  WITHDRAWN: "neutral",
   // templates
   RETIRED: "neutral",
 };

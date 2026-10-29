@@ -17,6 +17,7 @@ import { ChecklistPanel } from "./detail/checklist";
 import { EvidencePanel } from "./detail/evidence";
 import { InspectionActions, useInspectorRights } from "./detail/actions";
 import { InspectionHistory } from "./detail/history";
+import { CorrectionPanel } from "@/features/corrections/correction-panel";
 import type { InspectionDetailDto } from "@/api/types/catalog-moderation";
 
 function Summary({ inspection }: { inspection: InspectionDetailDto }) {
@@ -118,6 +119,7 @@ function DetailContent({ inspectionId }: { inspectionId: string }) {
         <div className="min-w-0 space-y-4">
           <Summary inspection={inspection} />
           <ChecklistPanel key={inspection.inspectionId} inspection={inspection} editable={responsesEditable} />
+          <CorrectionPanel inspection={inspection} />
         </div>
         <div className="min-w-0 space-y-4">
           <EvidencePanel inspection={inspection} editable={evidenceEditable} />
