@@ -5,7 +5,7 @@ function trimTrailingSlash(value: string): string {
 export const env = {
   /** Gateway origin. Empty string means same-origin `/api` (dev proxy or reverse proxy). */
   apiBaseUrl: trimTrailingSlash(import.meta.env.VITE_API_BASE_URL ?? ""),
-  refreshTokenStorage: (import.meta.env.VITE_REFRESH_TOKEN_STORAGE === "local" ? "local" : "session") as
+  refreshTokenStorage: (import.meta.env.VITE_REFRESH_TOKEN_STORAGE === "session" ? "session" : "local") as
     | "local"
     | "session",
   /** Public marketplace (buyer site), where people create a StockOut account before accepting an invitation. */

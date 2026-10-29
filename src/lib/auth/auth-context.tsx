@@ -13,7 +13,7 @@ import {
   buildAccessContext,
   type AccessContext,
 } from "@/lib/permissions/permissions";
-import { decodeJwtPayload, tokenStore } from "./token-store";
+import { decodeJwtPayload, REFRESH_KEY, tokenStore } from "./token-store";
 import { loadCurrentIdentity } from "./current-identity";
 
 export type AuthStatus = "initializing" | "authenticated" | "anonymous";
@@ -51,7 +51,18 @@ const AuthContext = React.createContext<AuthContextValue | null>(null);
 
 const EMPTY_ACCESS = buildAccessContext([], []);
 
+/**
+ * Rotating refresh tokens + reuse detection: if two tabs sent the same refresh token, the server would
+ * revoke the whole session. A Web Lock serialises refreshes across tabs, and the token is re-read
+ * inside the lock so a tab picks up the one another tab just rotated.
+ */
 async function exchangeRefreshToken(): Promise<boolean> {
+  const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+  if (locks?.request) return locks.request("stockout.admin.refresh", () => doExchangeRefreshToken());
+  return doExchangeRefreshToken();
+}
+
+async function doExchangeRefreshToken(): Promise<boolean> {
   for (let attempt = 0; ; attempt++) {
     const refreshToken = tokenStore.getPersistedRefreshToken();
     if (!refreshToken) return false;
@@ -141,6 +152,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       onSessionExpired: () => endSessionLocally("expired"),
     });
     return () => configureAuthHandlers(null);
+  }, [endSessionLocally]);
+
+  // Another tab signed out (shared refresh token removed): end this tab's session too.
+  React.useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === REFRESH_KEY && e.newValue === null && tokenStore.get()) endSessionLocally("signed-out");
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, [endSessionLocally]);
 
   // Restore the session on first load.

@@ -4,12 +4,13 @@ import { env } from "@/config/env";
  * Token storage.
  * The identity service returns tokens in the response body (no HttpOnly cookie is issued), so:
  *  - the access token lives in memory only (never persisted, never logged);
- *  - the refresh token is persisted in sessionStorage by default (tab-scoped, cleared when the tab
- *    closes) so a page reload can restore the session. VITE_REFRESH_TOKEN_STORAGE=local opts into
- *    localStorage for "remember me" behaviour.
+ *  - the refresh token is persisted in localStorage by default and shared by every tab, so refreshes
+ *    can be serialised across tabs (see exchangeRefreshToken). A tab-scoped copy (the old default) breaks
+ *    as soon as a tab is duplicated: both tabs rotate the same token and reuse detection revokes the
+ *    session. VITE_REFRESH_TOKEN_STORAGE=session keeps the tab-scoped behaviour.
  * If the backend later moves the refresh token to an HttpOnly cookie, only this file changes.
  */
-const REFRESH_KEY = "stockout.admin.rt";
+export const REFRESH_KEY = "stockout.admin.rt";
 
 export interface TokenSet {
   accessToken: string;
@@ -42,7 +43,15 @@ export const tokenStore = {
 
   getPersistedRefreshToken(): string | null {
     try {
-      return storage()?.getItem(REFRESH_KEY) ?? null;
+      const value = storage()?.getItem(REFRESH_KEY) ?? null;
+      if (value || env.refreshTokenStorage !== "local") return value;
+      // One-time migration from the earlier tab-scoped (sessionStorage) storage.
+      const legacy = window.sessionStorage.getItem(REFRESH_KEY);
+      if (legacy) {
+        window.localStorage.setItem(REFRESH_KEY, legacy);
+        window.sessionStorage.removeItem(REFRESH_KEY);
+      }
+      return legacy;
     } catch {
       return null;
     }

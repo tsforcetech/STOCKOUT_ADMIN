@@ -45,7 +45,7 @@ describe("route guards", () => {
     renderWithApp(routes, "/secret");
     expect(await screen.findByText("Secret page")).toBeInTheDocument();
     expect(calls.find((c) => c.url.pathname === "/api/v1/auth/token/refresh")?.body).toEqual({ refreshToken: "rt-1" });
-    expect(sessionStorage.getItem("stockout.admin.rt")).toBe("rt-2");
+    expect(localStorage.getItem("stockout.admin.rt")).toBe("rt-2");
   });
 
   it("shows a permission-denied state when the permission is missing", async () => {
@@ -61,7 +61,7 @@ describe("route guards", () => {
     mockFetch([{ method: "POST", path: "/api/v1/auth/token/refresh", respond: () => ({ status: 401, body: { title: "Unauthorized", status: 401 } }) }]);
     renderWithApp(routes, "/secret");
     expect(await screen.findByText("Login screen")).toBeInTheDocument();
-    await waitFor(() => expect(sessionStorage.getItem("stockout.admin.rt")).toBeNull());
+    await waitFor(() => expect(localStorage.getItem("stockout.admin.rt") ?? sessionStorage.getItem("stockout.admin.rt")).toBeNull());
   });
 });
 
@@ -71,6 +71,6 @@ describe("session restore resilience", () => {
     mockFetch([...sessionRoutes([]).filter((r) => r.path !== "/api/v1/identity/me"), { method: "GET", path: "/api/v1/identity/me", respond: () => ({ status: 503 }) }]);
     renderWithApp(routes, "/secret");
     expect(await screen.findByText("Login screen")).toBeInTheDocument();
-    expect(sessionStorage.getItem("stockout.admin.rt")).toBe("rt-2");
+    expect(localStorage.getItem("stockout.admin.rt")).toBe("rt-2");
   });
 });

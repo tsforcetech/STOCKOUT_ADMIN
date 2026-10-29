@@ -33,7 +33,7 @@ permissions returned by `GET /api/v1/platform/me/permissions`.
 |---|---|---|
 | `VITE_API_BASE_URL` | empty | Gateway origin for the built app. Empty = same-origin `/api` (recommended behind a reverse proxy). Set `https://stockout.flowb.io` to call the gateway directly (it currently allows any origin; restrict CORS before production). |
 | `VITE_DEV_PROXY_TARGET` | `https://stockout.flowb.io` | Dev-server proxy target. |
-| `VITE_REFRESH_TOKEN_STORAGE` | `session` | `session` (tab-scoped) or `local` (persist across browser restarts). |
+| `VITE_REFRESH_TOKEN_STORAGE` | `local` | `local` (shared by all tabs; refreshes serialised with a Web Lock) or `session` (tab-scoped; a duplicated tab logs both tabs out on refresh). |
 
 No secrets are needed or read by the frontend.
 

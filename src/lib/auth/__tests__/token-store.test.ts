@@ -10,11 +10,19 @@ describe("tokenStore", () => {
   it("keeps the access token in memory and persists only the refresh token", () => {
     tokenStore.set("access", "refresh", 900);
     expect(tokenStore.getAccessToken()).toBe("access");
-    expect(sessionStorage.getItem("stockout.admin.rt")).toBe("refresh");
-    expect(JSON.stringify(sessionStorage)).not.toContain("access");
+    expect(localStorage.getItem("stockout.admin.rt")).toBe("refresh");
+    expect(JSON.stringify(localStorage)).not.toContain("access");
     tokenStore.clear();
     expect(tokenStore.getAccessToken()).toBeNull();
     expect(tokenStore.getPersistedRefreshToken()).toBeNull();
+  });
+
+  it("shares the refresh token across tabs and moves a tab-scoped one over once", () => {
+    sessionStorage.setItem("stockout.admin.rt", "legacy");
+    expect(tokenStore.getPersistedRefreshToken()).toBe("legacy");
+    expect(localStorage.getItem("stockout.admin.rt")).toBe("legacy");
+    expect(sessionStorage.getItem("stockout.admin.rt")).toBeNull();
+    tokenStore.clear();
   });
 
   it("marks tokens expired ahead of the real expiry", () => {

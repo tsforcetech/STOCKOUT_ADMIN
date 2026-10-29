@@ -73,7 +73,7 @@ Screen → TanStack Query hook → services/*.service.ts → lib/api/client.ts (
 ## Authentication & authorization
 
 * Identity (`/api/v1/auth/*`) is token-in-body; no cookies are issued. Access token: memory only. Refresh
-  token: `sessionStorage` (tab-scoped) by default, `localStorage` with `VITE_REFRESH_TOKEN_STORAGE=local`.
+  token: `localStorage` (shared by all tabs, refreshes serialised with a Web Lock, sign-out in one tab ends the others) by default; `sessionStorage` with `VITE_REFRESH_TOKEN_STORAGE=session`.
   Tokens are never logged.
 * Login supports the emailed-OTP MFA challenge (`mfaRequired` → `/auth/mfa/verify`, resend with cooldown).
 * Sign-out revokes the current session explicitly with `DELETE /auth/sessions/{sid}` because
