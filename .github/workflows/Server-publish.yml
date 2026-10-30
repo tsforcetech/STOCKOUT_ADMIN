@@ -36,11 +36,11 @@ jobs:
       VITE_REFRESH_TOKEN_STORAGE: local
 
     steps:
-      # 1. Download source code
+      # 1. Checkout source
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Install Node.js
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -55,91 +55,99 @@ jobs:
           npm ci
 
           if ($LASTEXITCODE -ne 0) {
-            throw "npm install failed."
+            throw "npm ci failed with exit code $LASTEXITCODE"
           }
 
-      # 4. Build React + Vite application
+      # 4. Build React + Vite
       - name: Build React Application
         run: |
           Write-Host "Building STOCKOUT Admin..."
-          Write-Host "API: $env:VITE_API_BASE_URL"
+          Write-Host "API URL: $env:VITE_API_BASE_URL"
 
           npm run build
 
           if ($LASTEXITCODE -ne 0) {
-            throw "React build failed."
+            throw "Build failed with exit code $LASTEXITCODE"
           }
 
       # 5. Verify build output
       - name: Verify Build Output
         run: |
           $buildPath = Join-Path $env:GITHUB_WORKSPACE "dist"
+          $indexFile = Join-Path $buildPath "index.html"
 
-          if (!(Test-Path $buildPath)) {
-            throw "Build output directory not found."
+          if (!(Test-Path $indexFile)) {
+            throw "Build failed: dist/index.html missing"
           }
 
-          if (!(Test-Path (Join-Path $buildPath "index.html"))) {
-            throw "index.html not found in build output."
-          }
+          Write-Host "Build output verified successfully."
 
-          Write-Host "Build output verified."
-
-      # 6. Create deployment destination if missing
+      # 6. Verify IIS destination
       - name: Verify IIS Destination
         run: |
           if (!(Test-Path $env:DEPLOY_PATH)) {
-            throw "IIS deployment folder does not exist: $env:DEPLOY_PATH"
+            throw "IIS folder not found: $env:DEPLOY_PATH"
           }
 
           Write-Host "IIS destination verified."
 
-      # 7. Deploy compiled files to IIS
+      # 7. Deploy files to IIS
       - name: Deploy to IIS
         run: |
           $source = Join-Path $env:GITHUB_WORKSPACE "dist"
           $target = $env:DEPLOY_PATH
 
-          Write-Host "Starting STOCKOUT Admin deployment..."
+          Write-Host "======================================"
+          Write-Host "STARTING STOCKOUT ADMIN DEPLOYMENT"
+          Write-Host "======================================"
           Write-Host "Source: $source"
           Write-Host "Destination: $target"
 
-          & robocopy `
-            $source `
-            $target `
-            /E `
-            /R:3 `
-            /W:2 `
-            /NP
+          if (!(Test-Path $source)) {
+            throw "Build output folder not found: $source"
+          }
 
-          $exitCode = $LASTEXITCODE
+          if (!(Test-Path $target)) {
+            throw "IIS destination folder not found: $target"
+          }
 
-          if ($exitCode -ge 8) {
-            throw "Deployment failed. Robocopy exit code: $exitCode"
+          & robocopy $source $target /E /R:3 /W:2 /NP
+
+          $robocopyExitCode = $LASTEXITCODE
+
+          if ($robocopyExitCode -ge 8) {
+            throw "Deployment failed. Robocopy exit code: $robocopyExitCode"
           }
 
           Write-Host "Files deployed successfully."
+          Write-Host "Robocopy exit code: $robocopyExitCode"
 
-      # 8. Verify deployed frontend
+          # Robocopy exit codes 0-7 are nonfatal.
+          # GitHub Actions must receive exit code 0.
+          $global:LASTEXITCODE = 0
+          exit 0
+
+      # 8. Verify deployed files
       - name: Verify IIS Deployment
         run: |
           $indexFile = Join-Path $env:DEPLOY_PATH "index.html"
 
           if (!(Test-Path $indexFile)) {
-            throw "Deployment verification failed: index.html missing."
+            throw "Deployment verification failed: index.html missing"
           }
 
-          Write-Host "IIS deployment files verified."
+          Write-Host "Deployment verification passed."
+          Write-Host "IIS folder: $env:DEPLOY_PATH"
 
       # 9. Deployment summary
       - name: Deployment Summary
         run: |
           Write-Host "======================================"
-          Write-Host "STOCKOUT ADMIN DEPLOYMENT COMPLETED"
+          Write-Host "STOCKOUT ADMIN DEPLOYMENT SUCCESSFUL"
           Write-Host "======================================"
           Write-Host "Runner: $env:RUNNER_NAME"
           Write-Host "Branch: $env:GITHUB_REF_NAME"
           Write-Host "Commit: $env:GITHUB_SHA"
           Write-Host "API URL: $env:VITE_API_BASE_URL"
-          Write-Host "IIS Path: $env:DEPLOY_PATH"
+          Write-Host "Destination: $env:DEPLOY_PATH"
           Write-Host "======================================"
