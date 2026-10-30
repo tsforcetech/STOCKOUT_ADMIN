@@ -1,17 +1,18 @@
 
-name: Publish STOCKOUT Admin to IIS
+name: STOCKOUT Admin - IIS Deployment
 
 on:
   push:
     branches:
       - feature/admin-frontend
+
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: stockout-dev-admin-deploy
+  group: stockout-admin-iis-deployment
   cancel-in-progress: false
 
 jobs:
@@ -30,74 +31,115 @@ jobs:
 
     env:
       DEPLOY_PATH: C:\SHARACO\STOCKOUT\STOCKOUT_DEV_ADMIN
-      BUILD_PATH: dist
+      VITE_API_BASE_URL: https://stockout.flowb.io
+      VITE_BASE_PATH: /
+      VITE_REFRESH_TOKEN_STORAGE: local
 
     steps:
-      - name: Checkout Source
+      # 1. Download source code
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # 2. Install Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
 
+      # 3. Install dependencies
       - name: Install Dependencies
         run: |
+          Write-Host "Installing dependencies..."
+
           npm ci
+
           if ($LASTEXITCODE -ne 0) {
-            throw "npm ci failed"
+            throw "npm install failed."
           }
 
+      # 4. Build React + Vite application
       - name: Build React Application
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-          VITE_BASE_PATH: /
         run: |
+          Write-Host "Building STOCKOUT Admin..."
+          Write-Host "API: $env:VITE_API_BASE_URL"
+
           npm run build
+
           if ($LASTEXITCODE -ne 0) {
-            throw "Build failed"
+            throw "React build failed."
           }
 
+      # 5. Verify build output
       - name: Verify Build Output
         run: |
-          if (!(Test-Path "$env:BUILD_PATH\index.html")) {
-            throw "dist/index.html not found"
+          $buildPath = Join-Path $env:GITHUB_WORKSPACE "dist"
+
+          if (!(Test-Path $buildPath)) {
+            throw "Build output directory not found."
           }
 
-          Write-Host "Build verified successfully"
+          if (!(Test-Path (Join-Path $buildPath "index.html"))) {
+            throw "index.html not found in build output."
+          }
 
+          Write-Host "Build output verified."
+
+      # 6. Create deployment destination if missing
+      - name: Verify IIS Destination
+        run: |
+          if (!(Test-Path $env:DEPLOY_PATH)) {
+            throw "IIS deployment folder does not exist: $env:DEPLOY_PATH"
+          }
+
+          Write-Host "IIS destination verified."
+
+      # 7. Deploy compiled files to IIS
       - name: Deploy to IIS
         run: |
-          $source = Join-Path $env:GITHUB_WORKSPACE $env:BUILD_PATH
+          $source = Join-Path $env:GITHUB_WORKSPACE "dist"
           $target = $env:DEPLOY_PATH
 
+          Write-Host "Starting STOCKOUT Admin deployment..."
           Write-Host "Source: $source"
           Write-Host "Destination: $target"
 
-          if (!(Test-Path $source)) {
-            throw "Build output not found"
+          & robocopy `
+            $source `
+            $target `
+            /E `
+            /R:3 `
+            /W:2 `
+            /NP
+
+          $exitCode = $LASTEXITCODE
+
+          if ($exitCode -ge 8) {
+            throw "Deployment failed. Robocopy exit code: $exitCode"
           }
 
-          if (!(Test-Path $target)) {
-            throw "IIS destination folder not found"
+          Write-Host "Files deployed successfully."
+
+      # 8. Verify deployed frontend
+      - name: Verify IIS Deployment
+        run: |
+          $indexFile = Join-Path $env:DEPLOY_PATH "index.html"
+
+          if (!(Test-Path $indexFile)) {
+            throw "Deployment verification failed: index.html missing."
           }
 
-          & robocopy $source $target /E /R:3 /W:2
+          Write-Host "IIS deployment files verified."
 
-          $copyResult = $LASTEXITCODE
-
-          if ($copyResult -ge 8) {
-            throw "Deployment failed: $copyResult"
-          }
-
-          Write-Host "Deployment completed successfully"
-
+      # 9. Deployment summary
       - name: Deployment Summary
         run: |
-          Write-Host "=================================="
-          Write-Host "STOCKOUT ADMIN DEPLOYMENT SUCCESS"
-          Write-Host "=================================="
+          Write-Host "======================================"
+          Write-Host "STOCKOUT ADMIN DEPLOYMENT COMPLETED"
+          Write-Host "======================================"
+          Write-Host "Runner: $env:RUNNER_NAME"
           Write-Host "Branch: $env:GITHUB_REF_NAME"
           Write-Host "Commit: $env:GITHUB_SHA"
-          Write-Host "Destination: $env:DEPLOY_PATH"
+          Write-Host "API URL: $env:VITE_API_BASE_URL"
+          Write-Host "IIS Path: $env:DEPLOY_PATH"
+          Write-Host "======================================"
