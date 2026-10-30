@@ -1,17 +1,17 @@
 
-name: Publish STOCKOUT DEV ADMIN to IIS
+name: Publish STOCKOUT Admin to IIS
 
 on:
   push:
     branches:
-      - main
+      - feature/admin-frontend
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: stockout-dev-admin-deployment
+  group: stockout-dev-admin-deploy
   cancel-in-progress: false
 
 jobs:
@@ -30,66 +30,74 @@ jobs:
 
     env:
       DEPLOY_PATH: C:\SHARACO\STOCKOUT\STOCKOUT_DEV_ADMIN
+      BUILD_PATH: dist
 
     steps:
-      - name: Checkout source code
+      - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          dotnet-version: '8.0.x'
+          node-version: '22'
+          cache: npm
 
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Build application
-        run: dotnet build --configuration Release --no-restore
-
-      - name: Publish application
+      - name: Install Dependencies
         run: |
-          dotnet publish `
-            --configuration Release `
-            --no-build `
-            --output "${{ runner.temp }}\stockout-admin-publish"
-
-      - name: Deploy application to IIS
-        run: |
-          $source = "${{ runner.temp }}\stockout-admin-publish"
-          $target = $env:DEPLOY_PATH
-          $offline = Join-Path $target "app_offline.htm"
-
-          if (!(Test-Path $target)) {
-              throw "Deployment folder does not exist: $target"
+          npm ci
+          if ($LASTEXITCODE -ne 0) {
+            throw "npm ci failed"
           }
+
+      - name: Build React Application
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_BASE_PATH: /
+        run: |
+          npm run build
+          if ($LASTEXITCODE -ne 0) {
+            throw "Build failed"
+          }
+
+      - name: Verify Build Output
+        run: |
+          if (!(Test-Path "$env:BUILD_PATH\index.html")) {
+            throw "dist/index.html not found"
+          }
+
+          Write-Host "Build verified successfully"
+
+      - name: Deploy to IIS
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE $env:BUILD_PATH
+          $target = $env:DEPLOY_PATH
+
+          Write-Host "Source: $source"
+          Write-Host "Destination: $target"
 
           if (!(Test-Path $source)) {
-              throw "Published output not found: $source"
+            throw "Build output not found"
           }
 
-          try {
-              Write-Host "Taking STOCKOUT Admin offline..."
-
-              Set-Content -Path $offline `
-                -Value "Application is being updated."
-
-              Start-Sleep -Seconds 5
-
-              Write-Host "Copying published files..."
-
-              & robocopy $source $target /E /R:5 /W:3 /XF app_offline.htm
-
-              if ($LASTEXITCODE -ge 8) {
-                  throw "Deployment failed. Robocopy exit code: $LASTEXITCODE"
-              }
-
-              Write-Host "Deployment files copied successfully."
-          }
-          finally {
-              Remove-Item $offline -Force -ErrorAction SilentlyContinue
+          if (!(Test-Path $target)) {
+            throw "IIS destination folder not found"
           }
 
-      - name: Deployment completed
+          & robocopy $source $target /E /R:3 /W:2
+
+          $copyResult = $LASTEXITCODE
+
+          if ($copyResult -ge 8) {
+            throw "Deployment failed: $copyResult"
+          }
+
+          Write-Host "Deployment completed successfully"
+
+      - name: Deployment Summary
         run: |
-          Write-Host "STOCKOUT DEV ADMIN deployment completed."
+          Write-Host "=================================="
+          Write-Host "STOCKOUT ADMIN DEPLOYMENT SUCCESS"
+          Write-Host "=================================="
+          Write-Host "Branch: $env:GITHUB_REF_NAME"
+          Write-Host "Commit: $env:GITHUB_SHA"
           Write-Host "Destination: $env:DEPLOY_PATH"
