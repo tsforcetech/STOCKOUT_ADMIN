@@ -1,0 +1,95 @@
+
+name: Publish STOCKOUT DEV ADMIN to IIS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stockout-dev-admin-deployment
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy STOCKOUT Admin
+
+    runs-on:
+      - self-hosted
+      - windows
+      - x64
+      - stockout-dev-admin
+
+    defaults:
+      run:
+        shell: powershell
+
+    env:
+      DEPLOY_PATH: C:\SHARACO\STOCKOUT\STOCKOUT_DEV_ADMIN
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build application
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish application
+        run: |
+          dotnet publish `
+            --configuration Release `
+            --no-build `
+            --output "${{ runner.temp }}\stockout-admin-publish"
+
+      - name: Deploy application to IIS
+        run: |
+          $source = "${{ runner.temp }}\stockout-admin-publish"
+          $target = $env:DEPLOY_PATH
+          $offline = Join-Path $target "app_offline.htm"
+
+          if (!(Test-Path $target)) {
+              throw "Deployment folder does not exist: $target"
+          }
+
+          if (!(Test-Path $source)) {
+              throw "Published output not found: $source"
+          }
+
+          try {
+              Write-Host "Taking STOCKOUT Admin offline..."
+
+              Set-Content -Path $offline `
+                -Value "Application is being updated."
+
+              Start-Sleep -Seconds 5
+
+              Write-Host "Copying published files..."
+
+              & robocopy $source $target /E /R:5 /W:3 /XF app_offline.htm
+
+              if ($LASTEXITCODE -ge 8) {
+                  throw "Deployment failed. Robocopy exit code: $LASTEXITCODE"
+              }
+
+              Write-Host "Deployment files copied successfully."
+          }
+          finally {
+              Remove-Item $offline -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Deployment completed
+        run: |
+          Write-Host "STOCKOUT DEV ADMIN deployment completed."
+          Write-Host "Destination: $env:DEPLOY_PATH"
