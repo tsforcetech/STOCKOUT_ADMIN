@@ -16,6 +16,8 @@ import { useApiMutation } from "@/hooks/use-api-mutation";
 import { PERMISSIONS as P } from "@/api/types/user-organization";
 import { WITHDRAWABLE, type AdminListingCorrectionDto } from "@/api/types/listing-corrections";
 import { listingCorrectionsService } from "@/services/listing-corrections.service";
+import { moderationService } from "@/services/moderation.service";
+import { listingKeys } from "@/features/listings/queries";
 import { Notice, PanelTitle, PersonText, fmtUtc, isGuid, shortId, useSellerNames, useUserNames } from "@/features/listings/shared";
 import { correctionKeys } from "./queries";
 import { AuditTimeline, ChangesTable, CorrectionError, CorrectionStatusBadge } from "./shared";
@@ -104,6 +106,14 @@ function DetailContent({ correctionId }: { correctionId: string }) {
   const sellers = useSellerNames();
   const q = useQuery({ queryKey: correctionKeys.detail(correctionId), queryFn: ({ signal }) => listingCorrectionsService.detail(correctionId, signal) });
   const c = q.data;
+  // The correction stays SUBMITTED_TO_MODERATION after publication; the corrected version's own status tells us it went live.
+  const corrected = useQuery({
+    queryKey: listingKeys.detail(c?.listingId ?? "", c?.correctedListingVersionId ?? ""),
+    queryFn: ({ signal }) => moderationService.detail(c!.listingId, c!.correctedListingVersionId!, signal),
+    enabled: !!c?.correctedListingVersionId,
+    retry: false,
+  });
+  const versionStatus = corrected.data?.candidateVersion.versionStatus;
   if (q.isLoading) return <PageSkeleton />;
   if (q.error || !c)
     return (
@@ -136,7 +146,16 @@ function DetailContent({ correctionId }: { correctionId: string }) {
         </div>
       </PageHeader>
 
-      {c.status === "SUBMITTED_TO_MODERATION" && c.correctedListingVersionId && (
+      {c.correctedListingVersionId && (versionStatus === "PUBLISHED" || versionStatus === "SUPERSEDED") && (
+        <Notice className="mb-4" title={versionStatus === "PUBLISHED" ? "Published" : "Published, since replaced"}>
+          The corrected version{" "}
+          <Link className="underline underline-offset-4" to={`/listings/${c.listingId}/versions/${c.correctedListingVersionId}`}>
+            went live
+          </Link>
+          {versionStatus === "SUPERSEDED" ? " and has since been replaced by a newer version." : "."}
+        </Notice>
+      )}
+      {c.status === "SUBMITTED_TO_MODERATION" && c.correctedListingVersionId && versionStatus !== "PUBLISHED" && versionStatus !== "SUPERSEDED" && (
         <Notice className="mb-4" title="In moderation">
           The corrected version is in the moderation queue.{" "}
           <Link className="underline underline-offset-4" to={`/listings/${c.listingId}/versions/${c.correctedListingVersionId}`}>
