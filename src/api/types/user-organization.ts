@@ -749,6 +749,8 @@ export const PERMISSIONS = {
   SELLERS_VERIFY: 'sellers.verify',
   SELLERS_REJECT: 'sellers.reject',
   SELLERS_SUSPEND: 'sellers.suspend',
+  /** A5-R1: separate from suspend. */
+  SELLERS_REINSTATE: 'sellers.reinstate',
 
   // Organization business changes & UAE calendar (034, PA-1B.2)
   ORG_BUSINESS_CHANGES_VIEW: 'organizations.business_changes.view',

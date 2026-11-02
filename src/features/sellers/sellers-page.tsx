@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { ColumnDef, RowSelectionState } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
-import { CheckIcon, ProhibitIcon, SealCheckIcon, StorefrontIcon, WarningCircleIcon, XIcon, HourglassIcon } from "@phosphor-icons/react";
+import { CheckIcon, ProhibitIcon, SealCheckIcon, StorefrontIcon, WarningCircleIcon, XIcon, HourglassIcon, ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import { PageHeader } from "@/components/common/page-header";
 import { StatCards } from "@/components/common/stat-cards";
 import { SectionCard, Toolbar, RefreshButton, RowAction, BulkBar, BulkButton } from "@/components/common/section-card";
@@ -123,6 +123,11 @@ function SellersContent() {
               {allowed("SUSPEND", s) && (
                 <RowAction label="Suspend seller" tone="danger" onClick={() => act("SUSPEND", s)}>
                   <ProhibitIcon />
+                </RowAction>
+              )}
+              {allowed("REINSTATE", s) && (
+                <RowAction label="Reinstate seller" onClick={() => act("REINSTATE", s)}>
+                  <ArrowCounterClockwiseIcon />
                 </RowAction>
               )}
             </div>

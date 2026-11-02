@@ -64,4 +64,10 @@ export const sellersService = {
     unwrapData<MarketplaceSellerDto>(
       await http.post<Envelope<MarketplaceSellerDto>>(`/api/v1/admin/marketplace/sellers/${encodeURIComponent(sellerId)}/suspend`, { action: "SUSPEND", expectedRowVersion, reason: reason?.trim() || null }),
     ),
+
+  /** A5-R1. expectedRowVersion must come from a fresh GET …/sellers/{id}; reason ≤ 1000 chars, required. */
+  reinstate: async (sellerId: string, expectedRowVersion: string, reason: string) =>
+    unwrapData<MarketplaceSellerDto>(
+      await http.post<Envelope<MarketplaceSellerDto>>(`/api/v1/admin/marketplace/sellers/${encodeURIComponent(sellerId)}/reinstate`, { expectedRowVersion, reason: reason.trim() }),
+    ),
 };

@@ -16,6 +16,9 @@ const MESSAGES: Record<string, string> = {
   MARKETPLACE_SELLER_DOCUMENT_NOT_FOUND: "That document no longer exists.",
   DUPLICATE_TRADE_LICENSE: "Another seller is already registered with this trade licence and authority.",
   FORBIDDEN: "You don't have permission for this decision.",
+  REINSTATEMENT_REASON_REQUIRED: "Enter a meaningful reason for reinstating this seller.",
+  INVALID_ROW_VERSION: "The seller's record was out of date. It has been reloaded; try again.",
+  MARKETPLACE_SELLER_NOT_FOUND: "This seller no longer exists. Return to the seller list.",
 };
 
 export function kycErrorMessage(error: unknown): string {

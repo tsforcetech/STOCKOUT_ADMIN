@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircleIcon, CheckIcon, FileTextIcon, ProhibitIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, CheckCircleIcon, CheckIcon, FileTextIcon, ProhibitIcon, WarningCircleIcon, XIcon } from "@phosphor-icons/react";
+import { ReinstateDialog } from "./reinstate-dialog";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog, Dialog, DialogContent } from "@/components/ui/dialog";
 import { DetailList } from "@/components/common/page-header";
@@ -23,7 +24,7 @@ import { ApiErrorNotice, SignedFileLink, ageSince } from "@/features/listings/sh
 /** verify/reject are allowed only while PENDING and SUBMITTED/UNDER_REVIEW (backend state machine). */
 export const canReviewKyc = (s: MarketplaceSellerDto) => s.verificationStatus === "PENDING" && (s.onboardingStatus === "SUBMITTED" || s.onboardingStatus === "UNDER_REVIEW");
 
-export type SellerActionKind = "APPROVE" | "REJECT" | "SUSPEND";
+export type SellerActionKind = "APPROVE" | "REJECT" | "SUSPEND" | "REINSTATE";
 type PendingAction = { kind: SellerActionKind; seller: MarketplaceSellerDto } | null;
 
 export const sellersKeys = { all: ["sellers"] as const };
@@ -40,7 +41,9 @@ export function useSellerReview() {
   const action = useApiMutation({
     toastOnError: false,
     mutationFn: (a: NonNullable<PendingAction> & { reason?: string }) =>
-      a.kind === "SUSPEND" ? sellersService.suspend(a.seller.sellerId, a.seller.rowVersion, a.reason) : sellersService.review(a.seller.sellerId, a.kind, a.seller.rowVersion, a.reason),
+      a.kind === "REINSTATE"
+        ? Promise.reject(new Error("Reinstatement uses its own dialog."))
+        : a.kind === "SUSPEND" ? sellersService.suspend(a.seller.sellerId, a.seller.rowVersion, a.reason) : sellersService.review(a.seller.sellerId, a.kind, a.seller.rowVersion, a.reason),
     invalidate: [sellersKeys.all],
     successMessage: (_d, a) => `${a.seller.displayName ?? "Seller"} ${a.kind === "APPROVE" ? "verified" : a.kind === "REJECT" ? "rejected" : "suspended"}.`,
     onSuccess: () => {
@@ -51,7 +54,9 @@ export function useSellerReview() {
 
   const allowed = React.useCallback(
     (kind: SellerActionKind, s: MarketplaceSellerDto) =>
-      kind === "APPROVE" ? can(P.SELLERS_VERIFY) && canReviewKyc(s) : kind === "REJECT" ? can(P.SELLERS_REJECT) && canReviewKyc(s) : can(P.SELLERS_SUSPEND) && s.status === "ACTIVE",
+      kind === "APPROVE" ? can(P.SELLERS_VERIFY) && canReviewKyc(s) : kind === "REJECT" ? can(P.SELLERS_REJECT) && canReviewKyc(s) : kind === "SUSPEND"
+            ? can(P.SELLERS_SUSPEND) && s.status === "ACTIVE"
+            : can(P.SELLERS_REINSTATE) && s.status === "SUSPENDED",
     [can],
   );
 
@@ -68,6 +73,11 @@ export function useSellerReview() {
             description={`${humanize(viewing.organizationType)} seller · KYC review`}
             footer={
               <>
+                {allowed("REINSTATE", viewing) && (
+                  <Button variant="secondary" className="mr-auto" onClick={() => act("REINSTATE", viewing)}>
+                    <ArrowCounterClockwiseIcon /> Reinstate
+                  </Button>
+                )}
                 {allowed("SUSPEND", viewing) && (
                   <Button variant="secondary" className="mr-auto" onClick={() => act("SUSPEND", viewing)}>
                     <ProhibitIcon /> Suspend
@@ -83,7 +93,7 @@ export function useSellerReview() {
                     <CheckIcon /> Approve KYC
                   </Button>
                 )}
-                {!allowed("APPROVE", viewing) && !allowed("REJECT", viewing) && !allowed("SUSPEND", viewing) && (
+                {!allowed("APPROVE", viewing) && !allowed("REJECT", viewing) && !allowed("SUSPEND", viewing) && !allowed("REINSTATE", viewing) && (
                   <Button variant="secondary" onClick={() => setViewing(null)}>
                     Close
                   </Button>
@@ -95,11 +105,21 @@ export function useSellerReview() {
           </DialogContent>
         )}
       </Dialog>
+      <ReinstateDialog
+        open={pending?.kind === "REINSTATE"}
+        seller={pending?.kind === "REINSTATE" ? pending.seller : null}
+        onClose={() => setPending(null)}
+        onDone={(dto) => {
+          setPending(null);
+          // Keep the review open and show the refreshed (Active) seller.
+          setViewing((v) => (v && v.sellerId === dto.sellerId ? { ...v, ...dto } : v));
+        }}
+      />
       <ReasonDialog
         open={pending?.kind === "SUSPEND"}
         onOpenChange={(o) => !o && setPending(null)}
         title="Suspend seller?"
-        description={`${name} will be suspended: they can't list or sell, and their listings leave search. There is currently no API to reinstate a suspended seller.`}
+        description={`${name} will be suspended: they can't list or sell, and their listings leave buyer search (in the background, within a few minutes). Reinstating later needs the separate sellers.reinstate permission.`}
         reasonLabel="Reason (recorded on the seller)"
         confirmLabel="Suspend"
         loading={action.isPending}
@@ -124,7 +144,7 @@ export function useSellerReview() {
             ? `${name} will be marked verified and onboarding completed. They can then publish listings.`
             : pending?.kind === "REJECT"
               ? `${name} will be marked rejected and returned to draft so they can fix their details and resubmit.`
-              : `${name} will be suspended. There is currently no API to reinstate a suspended seller.`
+              : `${name} will be suspended.`
         }
         confirmLabel={pending?.kind === "APPROVE" ? "Approve" : pending?.kind === "REJECT" ? "Reject" : "Suspend"}
         tone={pending?.kind === "APPROVE" ? "primary" : "danger"}
@@ -168,6 +188,7 @@ function SellerReviewBody({ seller: s, canDecide }: { seller: MarketplaceSellerD
             { label: "Verified", value: formatDateTime(s.verifiedAtUtc) },
             { label: "Rejected", value: formatDateTime(s.rejectedAtUtc) },
             ...(s.suspendedAtUtc ? [{ label: "Suspended", value: formatDateTime(s.suspendedAtUtc) }] : []),
+            ...(s.status === "SUSPENDED" && s.suspensionReason ? [{ label: "Suspension reason", value: s.suspensionReason, full: true }] : []),
           ]}
         />
       </section>
