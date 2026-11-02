@@ -154,6 +154,10 @@ const CODE_MESSAGES: Record<string, string> = {
   MARKETPLACE_CORRECTION_MEDIA_LIMIT_EXCEEDED: "Too many photos or documents.",
   MARKETPLACE_LISTING_PRICE_INVALID: "Enter a price above 0 with at most 4 decimal places.",
   MARKETPLACE_INVENTORY_QUANTITY_BELOW_RESERVED: "Quantity can't be below the reserved quantity.",
+  MARKETPLACE_CORRECTION_INVENTORY_STALE: "Stock changed since this proposal was made. Refresh and propose the quantity again.",
+  MARKETPLACE_INVENTORY_NOT_FOUND: "This listing has no stock record yet.",
+  MARKETPLACE_LISTING_INSPECTION_NOT_PASSED: "Needs a PASS inspection completed in the last 30 days (and no open appeal) before it can be published.",
+  MARKETPLACE_INSPECTION_DIFFERENT_INSPECTOR_REQUIRED: "This is an appealed re-inspection — assign a different inspector from the original one.",
 };
 
 /** Plain-language message for E5 errors (the backend message often repeats the code). */

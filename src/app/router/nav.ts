@@ -96,6 +96,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Inspections", to: "/inspections", icon: UserCheckIcon, permission: P.INSPECTIONS_VIEW },
       { label: "Listing corrections", to: "/corrections", icon: NotePencilIcon, permission: P.INSPECTIONS_VIEW },
+      { label: "Inspection disputes", to: "/disputes", icon: ScalesIcon, permission: P.INSPECTIONS_VIEW },
       { label: "Orders", to: "/orders", icon: PackageIcon, unavailable: true },
       { label: "Delivery", to: "/delivery", icon: TruckIcon, unavailable: true },
       { label: "Payments & Payouts", to: "/payments", icon: WalletIcon, unavailable: true },

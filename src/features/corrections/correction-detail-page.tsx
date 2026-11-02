@@ -20,6 +20,14 @@ import { Notice, PanelTitle, PersonText, fmtUtc, isGuid, shortId, useSellerNames
 import { correctionKeys } from "./queries";
 import { AuditTimeline, ChangesTable, CorrectionError, CorrectionStatusBadge } from "./shared";
 
+/** E5-Q1: the absolute target quantity is applied once, on successful publication of the corrected version. */
+const QUANTITY_NOTE: Record<string, string> = {
+  AWAITING_PUBLICATION: "Stock is set to the proposed quantity only when the corrected version is published (one adjustment).",
+  APPLIED: "The proposed stock quantity was applied when the corrected version was published.",
+  CANCELLED: "The proposed stock change was cancelled; stock is unchanged.",
+  BLOCKED_PENDING_OWNER_DECISION: "The proposed quantity is recorded only. Stock levels are not changed automatically.",
+};
+
 function Actions({ c }: { c: AdminListingCorrectionDto }) {
   const { can } = useAccess();
   const { user } = useAuth();
@@ -142,9 +150,7 @@ function DetailContent({ correctionId }: { correctionId: string }) {
           The seller accepted, but the corrected version couldn't enter moderation automatically (for example the seller has an open draft, or the listing isn't published yet). Submit it for moderation once that's resolved.
         </Notice>
       )}
-      {c.quantityApplicationStatus === "BLOCKED_PENDING_OWNER_DECISION" && c.changes.some((x) => x.field === "quantity") && (
-        <Notice className="mb-4">The proposed quantity is recorded only. Stock levels are not changed automatically (pending owner decision E5-Q1).</Notice>
-      )}
+      {c.changes.some((x) => x.field === "quantity") && QUANTITY_NOTE[c.quantityApplicationStatus] && <Notice className="mb-4">{QUANTITY_NOTE[c.quantityApplicationStatus]}</Notice>}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="min-w-0 space-y-4">

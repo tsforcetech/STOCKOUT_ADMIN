@@ -317,7 +317,7 @@ function ProposeDialog({ snapshot: s, onClose }: { snapshot: CorrectionSnapshotR
             <FormField label={`Price (${s.currency})${mark("price")}`} htmlFor="c-price">
               <Input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
             </FormField>
-            <FormField label={`Quantity on hand${mark("quantity")}`} htmlFor="c-quantity" hint={`Recorded only — not applied to stock (reserved: ${s.reservedQuantity}).`}>
+            <FormField label={`Quantity on hand${mark("quantity")}`} htmlFor="c-quantity" hint={`Absolute target. Applied only when the corrected version is published (reserved: ${s.reservedQuantity}).`}>
               <Input inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </FormField>
           </div>
