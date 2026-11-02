@@ -40,7 +40,7 @@ export function useSellerReview() {
   const action = useApiMutation({
     toastOnError: false,
     mutationFn: (a: NonNullable<PendingAction> & { reason?: string }) =>
-      a.kind === "SUSPEND" ? sellersService.suspend(a.seller.sellerId, a.seller.rowVersion) : sellersService.review(a.seller.sellerId, a.kind, a.seller.rowVersion, a.reason),
+      a.kind === "SUSPEND" ? sellersService.suspend(a.seller.sellerId, a.seller.rowVersion, a.reason) : sellersService.review(a.seller.sellerId, a.kind, a.seller.rowVersion, a.reason),
     invalidate: [sellersKeys.all],
     successMessage: (_d, a) => `${a.seller.displayName ?? "Seller"} ${a.kind === "APPROVE" ? "verified" : a.kind === "REJECT" ? "rejected" : "suspended"}.`,
     onSuccess: () => {
@@ -96,6 +96,16 @@ export function useSellerReview() {
         )}
       </Dialog>
       <ReasonDialog
+        open={pending?.kind === "SUSPEND"}
+        onOpenChange={(o) => !o && setPending(null)}
+        title="Suspend seller?"
+        description={`${name} will be suspended: they can't list or sell, and their listings leave search. There is currently no API to reinstate a suspended seller.`}
+        reasonLabel="Reason (recorded on the seller)"
+        confirmLabel="Suspend"
+        loading={action.isPending}
+        onConfirm={(reason) => pending && action.mutate({ ...pending, reason }, { onError: (e) => toast.error(kycErrorMessage(e)) })}
+      />
+      <ReasonDialog
         open={pending?.kind === "REJECT"}
         onOpenChange={(o) => !o && setPending(null)}
         title="Reject seller KYC?"
@@ -106,7 +116,7 @@ export function useSellerReview() {
         onConfirm={(reason) => pending && action.mutate({ ...pending, reason }, { onError: (e) => toast.error(kycErrorMessage(e)) })}
       />
       <ConfirmDialog
-        open={pending !== null && pending.kind !== "REJECT"}
+        open={pending?.kind === "APPROVE"}
         onOpenChange={(o) => !o && setPending(null)}
         title={pending?.kind === "APPROVE" ? "Approve seller KYC?" : pending?.kind === "REJECT" ? "Reject seller KYC?" : "Suspend seller?"}
         description={

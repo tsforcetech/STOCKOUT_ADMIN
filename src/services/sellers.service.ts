@@ -59,9 +59,9 @@ export const sellersService = {
       ),
     ),
 
-  /** `action` is ignored by the backend but must be non-empty. */
-  suspend: async (sellerId: string, expectedRowVersion: string) =>
+  /** `action` is ignored by the backend but must be non-empty; `reason` is stored as suspensionReason. */
+  suspend: async (sellerId: string, expectedRowVersion: string, reason?: string) =>
     unwrapData<MarketplaceSellerDto>(
-      await http.post<Envelope<MarketplaceSellerDto>>(`/api/v1/admin/marketplace/sellers/${encodeURIComponent(sellerId)}/suspend`, { action: "SUSPEND", expectedRowVersion }),
+      await http.post<Envelope<MarketplaceSellerDto>>(`/api/v1/admin/marketplace/sellers/${encodeURIComponent(sellerId)}/suspend`, { action: "SUSPEND", expectedRowVersion, reason: reason?.trim() || null }),
     ),
 };
