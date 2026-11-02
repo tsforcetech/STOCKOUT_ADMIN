@@ -37,6 +37,14 @@ function Actions({ c }: { c: AdminListingCorrectionDto }) {
   const [open, setOpen] = React.useState<"withdraw" | "submit" | null>(null);
   const [reason, setReason] = React.useState("");
   const isProposer = !!user?.userId && user.userId.toLowerCase() === c.proposedByUserId.toLowerCase();
+  // 057 / E5-F1: once the base version is superseded, any staff with inspections.override may withdraw it.
+  const base = useQuery({
+    queryKey: listingKeys.detail(c.listingId, c.baseListingVersionId),
+    queryFn: ({ signal }) => moderationService.detail(c.listingId, c.baseListingVersionId, signal),
+    enabled: WITHDRAWABLE.includes(c.status),
+    retry: false,
+  });
+  const baseStale = ["SUPERSEDED", "ARCHIVED", "REJECTED"].includes(base.data?.candidateVersion.versionStatus ?? "");
   const refresh = () => qc.invalidateQueries({ queryKey: correctionKeys.all });
   const withdraw = useApiMutation({
     mutationFn: () => listingCorrectionsService.withdraw(c.correctionId, { reason: reason.trim(), expectedRowVersion: c.rowVersion }),
@@ -56,7 +64,7 @@ function Actions({ c }: { c: AdminListingCorrectionDto }) {
       void refresh();
     },
   });
-  const canWithdraw = isProposer && can(P.INSPECTIONS_OVERRIDE) && WITHDRAWABLE.includes(c.status);
+  const canWithdraw = (isProposer || baseStale) && can(P.INSPECTIONS_OVERRIDE) && WITHDRAWABLE.includes(c.status);
   const canSubmit = can(P.INSPECTIONS_OVERRIDE) && (c.status === "READY_FOR_MODERATION" || c.status === "SELLER_ACCEPTED");
   if (!canWithdraw && !canSubmit) return null;
   return (
@@ -75,7 +83,7 @@ function Actions({ c }: { c: AdminListingCorrectionDto }) {
         open={open === "withdraw"}
         onOpenChange={(o) => !o && setOpen(null)}
         title={`Withdraw ${c.correctionNo}?`}
-        description="The proposal closes and the listing stays as it is. The seller can no longer accept it."
+        description={baseStale ? "The version this proposal was based on has been replaced, so it can't go to moderation. Withdrawing closes it, cancels any pending stock change and frees the listing for a new proposal." : "The proposal closes and the listing stays as it is. The seller can no longer accept it."}
         confirmLabel="Withdraw"
         loading={withdraw.isPending}
         onConfirm={() => (reason.trim() ? withdraw.mutate() : undefined)}
