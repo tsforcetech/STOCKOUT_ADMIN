@@ -337,7 +337,8 @@ function Banner({ b, decidable, hasVerifiedId }: { b: AdminBuyerProfileDto; deci
       <div className="rounded-md border border-action-border/50 bg-action-soft px-3 py-2 text-sm text-foreground">
         {b.requiresReverification && (
           <p className="mb-1 flex items-center gap-1.5 font-medium">
-            <WarningCircleIcon className="size-4" aria-hidden /> Re-verification required{b.reverificationReason ? `: ${b.reverificationReason}` : ""}
+            <WarningCircleIcon className="size-4" aria-hidden /> Re-verification required{b.reverificationRequiredAtUtc ? ` since ${formatDate(b.reverificationRequiredAtUtc)}` : ""}
+            {b.reverificationReason ? `: ${b.reverificationReason}` : ""}
           </p>
         )}
         <p>

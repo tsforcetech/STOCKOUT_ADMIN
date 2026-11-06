@@ -960,6 +960,8 @@ export interface AdminBuyerListItemDto {
   documentExpiresAtUtc: string | null;
   requiresReverification: boolean;
   reverificationReason: string | null;
+  /** When re-verification was required; documents uploaded before it can't satisfy re-verification (FRESH_DOCUMENT_REQUIRED). */
+  reverificationRequiredAtUtc: string | null;
   tradeLicenseNumber: string;
   issuingAuthority: string;
   tradeLicenseExpiresAtUtc: string | null;
@@ -1060,6 +1062,8 @@ export interface AdminBuyerProfileDto {
   /** Q10: historical verified buyers must re-verify before purchasing. */
   requiresReverification: boolean;
   reverificationReason: string | null;
+  /** When re-verification was required; documents uploaded before it can't satisfy re-verification (FRESH_DOCUMENT_REQUIRED). */
+  reverificationRequiredAtUtc: string | null;
 }
 
 /** C#: AdminBuyerDocumentResponse — GET …/buyers/{id}/documents and the document review response. */

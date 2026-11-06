@@ -12,7 +12,7 @@ const B1 = "33333333-3333-4333-8333-333333333333";
 const B2 = "44444444-4444-4444-8444-444444444444";
 const listItem = (over: Record<string, unknown> = {}) => ({
   buyerId: B1, legalName: "", tradingName: "", fullName: "Aisha Rahman", documentType: "EMIRATES_ID", issuingCountry: "ARE", documentExpiresAtUtc: "2029-01-01T00:00:00",
-  requiresReverification: false, reverificationReason: null, tradeLicenseNumber: "", issuingAuthority: "", tradeLicenseExpiresAtUtc: null, isVatRegistered: false, taxRegistrationNumber: null,
+  requiresReverification: false, reverificationReason: null, reverificationRequiredAtUtc: null, tradeLicenseNumber: "", issuingAuthority: "", tradeLicenseExpiresAtUtc: null, isVatRegistered: false, taxRegistrationNumber: null,
   orgStatus: "ACTIVE", verificationStatus: "SUBMITTED", submittedAtUtc: "2026-11-05T08:00:00", verifiedAtUtc: null, rejectedAtUtc: null, suspendedAtUtc: null,
   rejectionReason: null, suspensionReason: null, createdAtUtc: "2026-11-01T00:00:00", updatedAtUtc: "2026-11-05T08:00:00", rowVersion: "AAAAAAAAC00=", ...over,
 });
