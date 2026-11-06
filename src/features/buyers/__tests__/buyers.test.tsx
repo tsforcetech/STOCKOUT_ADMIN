@@ -106,4 +106,21 @@ describe("Admin buyers (one-ID verification, Q1–Q15)", () => {
     await userEvent.click(screen.getByRole("button", { name: "Suspend" }));
     expect(await screen.findByText(/The buyer changed since you opened it/)).toBeInTheDocument();
   });
+
+  it("a historical document is labelled, can't be reviewed and doesn't enable approval", async () => {
+    sessionStorage.setItem("stockout.admin.rt", "rt-1");
+    mockFetch([
+      ...sessionRoutes(["buyers.view", "buyers.verify", "buyers.reject"]),
+      { method: "GET", path: "/api/v1/admin/marketplace/buyers", respond: () => env([listItem({ verificationStatus: "VERIFIED", requiresReverification: true })]) },
+      { method: "GET", path: `/api/v1/admin/marketplace/buyers/${B1}`, respond: () => env(profile({ verificationStatus: "VERIFIED", requiresReverification: true })) },
+      { method: "GET", path: `/api/v1/admin/marketplace/buyers/${B1}/documents`, respond: () => env([idDoc({ verificationStatus: "VERIFIED", isHistorical: true })]) },
+      { method: "GET", path: `/api/v1/admin/marketplace/buyers/${B1}/history`, respond: () => env([]) },
+    ]);
+    renderWithApp(routes, "/buyers?tab=reverify");
+    await userEvent.click(await screen.findByText("Aisha Rahman"));
+    const dialog = await screen.findByRole("dialog");
+    expect(await within(dialog).findByText("Previous verification")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: /Verify document|Reject document/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Approve buyer/ })).toBeDisabled();
+  });
 });

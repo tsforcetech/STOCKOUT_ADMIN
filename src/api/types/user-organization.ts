@@ -998,6 +998,8 @@ export interface BuyerDocumentResponse {
   reviewedByUserId: Guid | null;
   reviewedAtUtc: string | null;
   createdAtUtc: string;
+  /** Sprint 2 (BV-05/06, migration 040): kept record of an earlier verification; can't satisfy a new approval. */
+  isHistorical?: boolean;
 }
 
 /** C#: BuyerProfileDto — GET /api/v1/admin/marketplace/buyers/{buyerId}; also returned by verify / reject / suspend. */

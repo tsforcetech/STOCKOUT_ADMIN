@@ -40,6 +40,7 @@ const docTypeLabel = (t: string | null | undefined) => (t ? ({ EMIRATES_ID: "Emi
 const MESSAGES: Record<string, string> = {
   MANDATORY_KYC_DOCUMENTS_INCOMPLETE: "Can't approve: verify the buyer's identity document first. Exactly one qualifying ID must be reviewed as verified.",
   BUYER_IDENTITY_DETAILS_INCOMPLETE: "Can't approve: the buyer's identity details (name, nationality, document number, issuing country, expiry, mobile, address) are incomplete.",
+  BUYER_DOCUMENT_REVIEWED_IMMUTABLE: "This document has already been reviewed and is kept on record.",
   DOCUMENT_EXPIRED: "This document has expired, so it can't be verified. Reject it with a note asking for a valid document.",
   MARKETPLACE_BUYER_DOCUMENT_FILE_INVALID: "The identity file is missing or still uploading, so it can't be verified. Reject it with a note asking the buyer to upload it again.",
   REJECTION_REASON_REQUIRED: "Add a reason. The buyer sees it.",
@@ -115,7 +116,8 @@ function BuyerReviewDialog({ buyerId, onClose }: { buyerId: string | null; onClo
 
   const b = detail.data;
   const documents = docs.data ?? [];
-  const idDocs = documents.filter(isIdentityDocument);
+  // Historical documents (earlier verifications) are kept for audit but never count toward a new approval.
+  const idDocs = documents.filter((d) => isIdentityDocument(d) && !d.isHistorical);
   const hasVerifiedId = idDocs.some((d) => d.verificationStatus === "VERIFIED");
   const decidable = !!b && canDecideBuyer(b);
   const mayApprove = decidable && can(P.BUYERS_VERIFY);
@@ -373,7 +375,7 @@ function DocumentRow({
   onVerify: () => void;
   onReject: () => void;
 }) {
-  const pending = !["VERIFIED", "REJECTED"].includes(doc.verificationStatus.toUpperCase());
+  const pending = !doc.isHistorical && !["VERIFIED", "REJECTED"].includes(doc.verificationStatus.toUpperCase());
   const expired = !!doc.expiresAt && new Date(doc.expiresAt).getTime() <= Date.now();
   return (
     <li className="rounded-lg border border-border p-3">
@@ -383,6 +385,11 @@ function DocumentRow({
           <p className="text-sm font-medium text-foreground">
             {docTypeLabel(doc.documentType)}
             {!isIdentityDocument(doc) && <span className="ml-2 text-xs text-warning">Not an accepted ID type</span>}
+            {doc.isHistorical && (
+              <Badge tone="neutral" className="ml-2">
+                Previous verification
+              </Badge>
+            )}
           </p>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {doc.documentNumber ? `No. ${doc.documentNumber} · ` : ""}
