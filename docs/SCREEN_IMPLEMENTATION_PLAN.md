@@ -26,11 +26,12 @@ Legend — **Backend**: ✅ endpoints exist · ⚠️ exist with known defects (
 | `/settings` | Platform settings & feature flags | Settings 860:38118 | ✅ | settings.*, feature-flags.* | Typed editors, optimistic concurrency, reset |
 | `/account` | My profile | My Profile 831:33943 | ⚠️ null photo deletes file | signed-in | Photo upload via presigned S3 |
 | `/account/security` | Password, sessions, MFA, activity | My Profile | ⚠️ MFA disable broken | signed-in | Password change signs out everywhere (backend behaviour) |
+| `/buyers` | Buyer identity verification queue, review dialog (Q4 identity details, private ID file, per-document verify/reject, approve/reject/suspend, history) | Buyers | ✅ | buyers.view / verify / reject / suspend | One verified ID required to approve; fresh rowVersion per decision; re-verification tab (Q10) |
 | `*` | 404 | Error & Unauthorised 660:33534 | — | — | |
 
 ## Figma screens without backend support (shown as disabled "Soon" menu items)
 
-Tasks & Workflows · Price Guidance · Buyer Requests · Bids & Deals · Buyers · Inspectors (list) · Orders ·
+Tasks & Workflows · Price Guidance · Buyer Requests · Bids & Deals · Inspectors (list) · Orders ·
 Delivery · Payments & Payouts · Green Points · Support & Disputes · Content & Banners · Reports ·
 Integrations · Audit Log. The gateway routes `/api/v1/deals`, `/payments`, `/messages`, `/workflows`,
 `/audit`, `/realtime` exist but their services only expose `/system/version`.

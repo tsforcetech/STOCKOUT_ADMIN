@@ -59,6 +59,7 @@ running gateway. *No endpoint is marked Live: the gateway was not reachable from
 | Inspection evidence (F2-E) | `/api/v1/admin/catalog/inspections/{id}/evidence/{evidenceId}/download-url` | GET | admin, or the assigned inspector | Inspection evidence "Open" + photo thumbnails | Integrated; live check pending (no evidence on server yet) |
 | Inspections | `/api/v1/admin/catalog/inspections` (+ `/{id}`, assign, reassign, start, responses, evidence, complete, cancel, authorize-reinspection) | GET, POST, PUT, DELETE | inspections.view / assign / perform / override | Inspection detail | Integrated |
 | Files | `/api/v1/files/upload-requests`, `/{id}/complete`, `/{id}`, `/{id}/download-url` | POST, GET | signed-in (owner-scoped) | Profile photo, inspection evidence | Integrated |
+| Buyers (one-ID verification, Q1–Q15) | `/api/v1/admin/marketplace/buyers` (+ `/{id}`, `/{id}/documents`, `/{id}/documents/{docId}/download-url`, `/{id}/documents/{docId}/review`, `/{id}/verify`, `/{id}/reject`, `/{id}/suspend`, `/{id}/history`) | GET, POST | buyers.view / verify / reject / suspend | Buyers | Integrated (6 Nov 2026, backend 2239c6a; see contracts/buyer-verification.md) |
 | Notifications | `/api/v1/admin/notification-templates` (+ `/{code}/{channel}`, versions, activate, retire) | GET, POST, PUT | notification-templates.* | Notifications | Integrated |
 
 ## Routed by the gateway but not implemented by the backend (blockers)
@@ -72,4 +73,4 @@ running gateway. *No endpoint is marked Live: the gateway was not reachable from
 | `/api/v1/audit/*` | audit-reporting | Audit Log, Reports |
 | `/api/v1/realtime/*` | realtime-gateway | Notifications bell, live activity |
 | `/api/v1/public/*`, `/api/v1/portal/*` | BFFs | — |
-| (none) | — | Orders, Delivery, Buyers, Inspectors list, Price Guidance, Buyer Requests, Green Points, Content & Banners, Integrations |
+| (none) | — | Orders, Delivery, Inspectors list, Price Guidance, Buyer Requests, Green Points, Content & Banners, Integrations |

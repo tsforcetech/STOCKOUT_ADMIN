@@ -86,7 +86,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: "Sellers", to: "/sellers", icon: StorefrontIcon, permission: P.SELLERS_VIEW },
       { label: "Business changes", to: "/business-changes", icon: ClipboardTextIcon, permission: P.ORG_BUSINESS_CHANGES_VIEW },
-      { label: "Buyers", to: "/buyers", icon: ShoppingCartIcon, unavailable: true },
+      { label: "Buyers", to: "/buyers", icon: ShoppingCartIcon, permission: P.BUYERS_VIEW },
       { label: "Inspectors", to: "/inspectors", icon: ListMagnifyingGlassIcon, unavailable: true },
     ],
   },

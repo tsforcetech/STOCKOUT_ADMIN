@@ -27,7 +27,8 @@ build environment's network policy. Live verification with a real admin account 
 | Settings: platform settings & feature flags | Yes | Yes | — | — |
 | My profile | Yes | Yes | — | Photo cannot be removed (backend deletes file on null) |
 | Security: password, sessions, MFA, activity | Yes | Yes | — | ⚠ MFA disable broken (backend) → not offered |
-| Orders, Delivery, Payments, Bids & Deals, Buyers, Inspectors, Tasks, Price Guidance, Buyer Requests, Green Points, Support, Content, Reports, Integrations, Audit Log | Menu only ("Soon") | No — **no backend API** | — | Blocked on backend |
+| Buyers (identity verification) | Yes | Yes | Yes — queue, document verify → approve with fresh rowVersion, reject note, version conflict | Not yet run live (needs an admin with buyers.* and a submitted buyer; migration 039 deployment unconfirmed) |
+| Orders, Delivery, Payments, Bids & Deals, Inspectors, Tasks, Price Guidance, Buyer Requests, Green Points, Support, Content, Reports, Integrations, Audit Log | Menu only ("Soon") | No — **no backend API** | — | Blocked on backend |
 
 ## Test results (this build)
 

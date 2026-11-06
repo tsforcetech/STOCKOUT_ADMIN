@@ -752,6 +752,13 @@ export const PERMISSIONS = {
   /** A5-R1: separate from suspend. */
   SELLERS_REINSTATE: 'sellers.reinstate',
 
+  // Buyers (one-ID buyer identity verification, Q1–Q15, migration 039)
+  BUYERS_VIEW: 'buyers.view',
+  BUYERS_VERIFY: 'buyers.verify',
+  BUYERS_REJECT: 'buyers.reject',
+  /** Q8: manual revocation of a verified buyer is done by suspending. */
+  BUYERS_SUSPEND: 'buyers.suspend',
+
   // Organization business changes & UAE calendar (034, PA-1B.2)
   ORG_BUSINESS_CHANGES_VIEW: 'organizations.business_changes.view',
   ORG_BUSINESS_CHANGES_APPROVE: 'organizations.business_changes.approve',
@@ -926,4 +933,172 @@ export interface EligibleInspectorsQuery {
   pageSize?: number;
   /** also return this user even if not eligible (e.g. the current assignee) */
   includeUserId?: Guid;
+}
+
+
+/* ============================================================================================
+ * Admin buyer identity verification (user-organization, AdminMarketplaceBuyersController).
+ * Copied from Contracts/Marketplace/BuyerContracts.cs @ 2239c6a (Q1–Q15, migration 039). All responses use the
+ * { success, data } envelope. One qualifying identity document (EMIRATES_ID / PASSPORT / NATIONAL_ID) reviewed
+ * VERIFIED by an admin is required before the buyer can be approved.
+ * ========================================================================================== */
+
+/** Buyer verification status values used by PR_BUYER_* (migration 039). */
+export type BuyerVerificationStatus = "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "VERIFIED" | "REJECTED" | (string & {});
+
+/** Q1 accepted identity document types (server-normalised; aliases GOVERNMENT_ID / OTHER_GOVERNMENT_ID). */
+export const BUYER_ID_DOCUMENT_TYPES = ["EMIRATES_ID", "PASSPORT", "NATIONAL_ID"] as const;
+
+/** C#: AdminBuyerListItemDto — GET /api/v1/admin/marketplace/buyers (buyers.view). */
+export interface AdminBuyerListItemDto {
+  buyerId: Guid;
+  legalName: string;
+  tradingName: string;
+  fullName: string | null;
+  documentType: string | null;
+  issuingCountry: string | null;
+  documentExpiresAtUtc: string | null;
+  requiresReverification: boolean;
+  reverificationReason: string | null;
+  tradeLicenseNumber: string;
+  issuingAuthority: string;
+  tradeLicenseExpiresAtUtc: string | null;
+  isVatRegistered: boolean;
+  taxRegistrationNumber: string | null;
+  orgStatus: string;
+  verificationStatus: BuyerVerificationStatus;
+  submittedAtUtc: string | null;
+  verifiedAtUtc: string | null;
+  rejectedAtUtc: string | null;
+  suspendedAtUtc: string | null;
+  rejectionReason: string | null;
+  suspensionReason: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+  rowVersion: string;
+}
+
+/** C#: BuyerDocumentResponse (embedded in the profile). */
+export interface BuyerDocumentResponse {
+  buyerDocumentId: Guid;
+  buyerId: Guid;
+  documentType: string;
+  fileAssetId: Guid;
+  documentNumber: string | null;
+  issuedAt: string | null;
+  expiresAt: string | null;
+  verificationStatus: string;
+  reviewRemark: string | null;
+  containsSignatoryId: boolean | null;
+  containsSignatoryAuthorityProof: boolean | null;
+  verifiedSignatoryId: boolean | null;
+  verifiedSignatoryAuthorityProof: boolean | null;
+  reviewedByUserId: Guid | null;
+  reviewedAtUtc: string | null;
+  createdAtUtc: string;
+}
+
+/** C#: BuyerProfileDto — GET /api/v1/admin/marketplace/buyers/{buyerId}; also returned by verify / reject / suspend. */
+export interface AdminBuyerProfileDto {
+  buyerId: Guid;
+  organizationId: Guid;
+  organizationType: string;
+  legalName: string | null;
+  tradingName: string | null;
+  tradeLicenseNumber: string | null;
+  issuingAuthority: string | null;
+  tradeLicenseIssuedAtUtc: string | null;
+  tradeLicenseExpiresAtUtc: string | null;
+  isVatRegistered: boolean;
+  taxRegistrationNumber: string | null;
+  hasVatDeclaration: boolean;
+  signatoryName: string | null;
+  signatoryEmail: string | null;
+  signatoryPhone: string | null;
+  signatoryAuthorityRole: string | null;
+  businessContactEmail: string | null;
+  businessContactPhone: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  stateOrEmirate: string | null;
+  postalCode: string | null;
+  countryCode: string;
+  defaultCurrency: string;
+  bankName: string | null;
+  bankAccountNumber: string | null;
+  bankIban: string | null;
+  bankSwiftCode: string | null;
+  bankBeneficiaryName: string | null;
+  verificationStatus: BuyerVerificationStatus;
+  orgStatus: string;
+  submittedAtUtc: string | null;
+  verifiedAtUtc: string | null;
+  rejectedAtUtc: string | null;
+  suspendedAtUtc: string | null;
+  rejectionReason: string | null;
+  suspensionReason: string | null;
+  canPurchase: boolean;
+  mandatoryDocumentsComplete: boolean;
+  missingDocumentCategories: string[];
+  pendingPolicies: string[];
+  documents: BuyerDocumentResponse[];
+  createdAtUtc: string;
+  updatedAtUtc: string;
+  rowVersion: string;
+  /** Q2: the registered buyer account holder whose identity is verified. */
+  accountHolderUserId: Guid | null;
+  /** Q4 fields */
+  fullName: string | null;
+  nationality: string | null;
+  documentType: string | null;
+  documentNumber: string | null;
+  issuingCountry: string | null;
+  documentExpiresAtUtc: string | null;
+  mobileNumber: string | null;
+  residentialAddress: string | null;
+  /** Q10: historical verified buyers must re-verify before purchasing. */
+  requiresReverification: boolean;
+  reverificationReason: string | null;
+}
+
+/** C#: AdminBuyerDocumentResponse — GET …/buyers/{id}/documents and the document review response. */
+export interface AdminBuyerDocumentResponse extends BuyerDocumentResponse {
+  downloadUrl: string | null;
+  expiresAtUtc: string | null;
+}
+
+/** C#: AdminBuyerDocumentDownloadUrlResponse — GET …/documents/{documentId}/download-url (short-lived, private). */
+export interface AdminBuyerDocumentDownloadUrlResponse {
+  buyerDocumentId: Guid;
+  buyerId: Guid;
+  fileAssetId: Guid;
+  documentType: string;
+  downloadUrl: string;
+  expiresAtUtc: string | null;
+}
+
+/** C#: AdminReviewDocumentRequest. REJECT needs reviewRemark; VERIFY of an expired document → DOCUMENT_EXPIRED. */
+export interface AdminBuyerReviewDocumentRequest {
+  action: "VERIFY" | "REJECT";
+  reviewRemark?: string | null;
+  reclassifiedDocumentType?: string | null;
+}
+
+/** C#: AdminBuyerReviewRequest — body of /verify, /reject (reason required) and /suspend (reason required). */
+export interface AdminBuyerReviewRequest {
+  expectedRowVersion: string;
+  reason?: string | null;
+}
+
+/** C#: BuyerVerificationHistoryDto — GET …/buyers/{id}/history. */
+export interface BuyerVerificationHistoryDto {
+  historyId: Guid;
+  buyerId: Guid;
+  fromStatus: string;
+  toStatus: string;
+  reason: string | null;
+  changedByUserId: Guid;
+  changedAtUtc: string;
+  comments: string | null;
 }

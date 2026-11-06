@@ -34,6 +34,7 @@ const appRoutes: RouteObject[] = [
     ],
   },
   { path: "sellers", lazy: page(() => import("@/features/sellers/sellers-page")), handle: { crumb: "Sellers" } },
+  { path: "buyers", lazy: page(() => import("@/features/buyers/buyers-page")), handle: { crumb: "Buyers" } },
   {
     path: "inspections",
     handle: { crumb: "Inspections" },
