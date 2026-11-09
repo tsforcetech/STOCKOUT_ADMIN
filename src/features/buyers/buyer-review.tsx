@@ -26,6 +26,30 @@ export const buyersKeys = {
 
 type BuyerLike = Pick<AdminBuyerListItemDto, "verificationStatus" | "orgStatus" | "requiresReverification">;
 
+/** Handoff 2026-11-09 §5 labels for reviewSlaStatus (server-calculated; never computed here). */
+const SLA: Record<string, { label: string; tone: "success" | "warning" | "danger" | "neutral" }> = {
+  WITHIN_TARGET: { label: "Within review target", tone: "success" },
+  OVERDUE: { label: "Review overdue", tone: "danger" },
+  COMPLETED_WITHIN_TARGET: { label: "Reviewed within target", tone: "success" },
+  COMPLETED_OVERDUE: { label: "Reviewed after target", tone: "warning" },
+  CALENDAR_COVERAGE_MISSING: { label: "Review deadline unavailable", tone: "warning" },
+};
+export function slaInfo(b: { reviewSlaStatus?: string | null; isOverdue?: boolean }): { label: string; tone: "success" | "warning" | "danger" | "neutral" } | null {
+  if (b.isOverdue && b.reviewSlaStatus !== "COMPLETED_OVERDUE") return SLA.OVERDUE;
+  if (!b.reviewSlaStatus) return { label: "Status unavailable", tone: "neutral" };
+  if (b.reviewSlaStatus === "NOT_APPLICABLE") return null;
+  return SLA[b.reviewSlaStatus] ?? { label: "Status unavailable", tone: "neutral" };
+}
+export function SlaBadge({ b }: { b: { reviewSlaStatus?: string | null; isOverdue?: boolean } }) {
+  const i = slaInfo(b);
+  if (!i) return null;
+  return (
+    <Badge tone={i.tone} dot>
+      {i.label}
+    </Badge>
+  );
+}
+
 export const buyerName = (b: { fullName?: string | null; legalName?: string | null; tradingName?: string | null }) => b.fullName?.trim() || b.legalName?.trim() || b.tradingName?.trim() || "Unnamed buyer";
 
 /** PR_BUYER_ADMIN_VERIFY / _REJECT: allowed while SUBMITTED or UNDER_REVIEW, or whenever re-verification is required (migration 039). */
@@ -236,6 +260,8 @@ function BuyerReviewDialog({ buyerId, onClose }: { buyerId: string | null; onClo
                       { label: "Account", value: <StatusBadge value={b.orgStatus} /> },
                       { label: "Can purchase", value: b.canPurchase ? "Yes" : "No" },
                       { label: "Submitted", value: formatDateTime(b.submittedAtUtc) },
+                      { label: "Review deadline", value: b.reviewDeadlineUtc ? formatDateTime(b.reviewDeadlineUtc) : b.reviewSlaStatus === "CALENDAR_COVERAGE_MISSING" ? "Unavailable (calendar)" : "—" },
+                      { label: "Review SLA", value: <SlaBadge b={b} /> },
                       { label: "Verified", value: formatDateTime(b.verifiedAtUtc) },
                       { label: "Rejected", value: formatDateTime(b.rejectedAtUtc) },
                       ...(b.rejectionReason ? [{ label: "Rejection reason", value: b.rejectionReason, full: true }] : []),
@@ -344,7 +370,12 @@ function Banner({ b, decidable, hasVerifiedId }: { b: AdminBuyerProfileDto; deci
           </p>
         )}
         <p>
-          {b.submittedAtUtc ? `Submitted ${ageSince(b.submittedAtUtc)} ago. ` : ""}Review target: within 2 business days.{" "}
+          {b.submittedAtUtc ? `Submitted ${ageSince(b.submittedAtUtc)} ago. ` : ""}
+          {b.reviewDeadlineUtc
+            ? `Review deadline: ${formatDateTime(b.reviewDeadlineUtc)} (2 UAE business days). `
+            : b.reviewSlaStatus === "CALENDAR_COVERAGE_MISSING"
+              ? "Review deadline unavailable: the UAE calendar has no working days configured for this period (check UAE calendar). "
+              : "Review target: within 2 business days. "}
           {hasVerifiedId ? "The identity document is verified; you can approve the buyer." : "Open and verify the identity document, then approve the buyer."}
         </p>
       </div>

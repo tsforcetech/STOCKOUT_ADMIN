@@ -962,6 +962,11 @@ export interface AdminBuyerListItemDto {
   reverificationReason: string | null;
   /** When re-verification was required; documents uploaded before it can't satisfy re-verification (FRESH_DOCUMENT_REQUIRED). */
   reverificationRequiredAtUtc: string | null;
+  /** Review SLA: 2 UAE business days, calculated by the backend with the UAE calendar. Null when n/a or calendar missing. */
+  reviewDeadlineUtc?: string | null;
+  isOverdue?: boolean;
+  /** WITHIN_TARGET | OVERDUE | COMPLETED_WITHIN_TARGET | COMPLETED_OVERDUE | CALENDAR_COVERAGE_MISSING | NOT_APPLICABLE */
+  reviewSlaStatus?: string | null;
   tradeLicenseNumber: string;
   issuingAuthority: string;
   tradeLicenseExpiresAtUtc: string | null;
@@ -1066,6 +1071,11 @@ export interface AdminBuyerProfileDto {
   reverificationReason: string | null;
   /** When re-verification was required; documents uploaded before it can't satisfy re-verification (FRESH_DOCUMENT_REQUIRED). */
   reverificationRequiredAtUtc: string | null;
+  /** Review SLA: 2 UAE business days, calculated by the backend with the UAE calendar. Null when n/a or calendar missing. */
+  reviewDeadlineUtc?: string | null;
+  isOverdue?: boolean;
+  /** WITHIN_TARGET | OVERDUE | COMPLETED_WITHIN_TARGET | COMPLETED_OVERDUE | CALENDAR_COVERAGE_MISSING | NOT_APPLICABLE */
+  reviewSlaStatus?: string | null;
 }
 
 /** C#: AdminBuyerDocumentResponse — GET …/buyers/{id}/documents and the document review response. */

@@ -107,6 +107,30 @@ describe("Admin buyers (one-ID verification, Q1–Q15)", () => {
     expect(await screen.findByText(/The buyer changed since you opened it/)).toBeInTheDocument();
   });
 
+  it("review queue shows overdue buyers first with an SLA badge and the server deadline", async () => {
+    sessionStorage.setItem("stockout.admin.rt", "rt-1");
+    mockFetch([
+      ...sessionRoutes(["buyers.view"]),
+      {
+        method: "GET",
+        path: "/api/v1/admin/marketplace/buyers",
+        respond: () =>
+          env([
+            listItem({ reviewDeadlineUtc: "2026-11-12T08:00:00", isOverdue: false, reviewSlaStatus: "WITHIN_TARGET" }),
+            listItem({ buyerId: B2, fullName: "Omar Khan", submittedAtUtc: "2026-11-06T08:00:00", reviewDeadlineUtc: "2026-11-10T08:00:00", isOverdue: true, reviewSlaStatus: "OVERDUE" }),
+          ]),
+      },
+    ]);
+    renderWithApp(routes, "/buyers");
+    const table = await screen.findByRole("table", { name: "Buyers" });
+    await within(table).findByText("Omar Khan");
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(within(rows[0]).getByText("Omar Khan")).toBeInTheDocument();
+    expect(within(rows[0]).getByText("Review overdue")).toBeInTheDocument();
+    expect(within(rows[1]).getByText("Within review target")).toBeInTheDocument();
+    expect(screen.getByText("1 overdue")).toBeInTheDocument();
+  });
+
   it("a historical document is labelled, can't be reviewed and doesn't enable approval", async () => {
     sessionStorage.setItem("stockout.admin.rt", "rt-1");
     mockFetch([

@@ -19,7 +19,7 @@ import { PERMISSIONS as P, type AdminBuyerListItemDto } from "@/api/types/user-o
 import { formatDateTime, formatNumber, humanize } from "@/lib/utils/format";
 import { downloadCsv, toCsv } from "@/lib/utils/csv";
 import { ageSince } from "@/features/listings/shared";
-import { buyerName, buyersKeys, canDecideBuyer, useBuyerReview } from "./buyer-review";
+import { SlaBadge, buyerName, buyersKeys, canDecideBuyer, useBuyerReview } from "./buyer-review";
 
 const TABS = [
   { value: "review", label: "Awaiting review" },
@@ -62,8 +62,15 @@ function BuyersContent() {
   const filtered = React.useMemo(() => {
     const q = state.q.trim().toLowerCase();
     const rows = buyers.filter((b) => matchesTab(b, state.tab as TabValue) && (!q || buyerName(b).toLowerCase().includes(q) || b.buyerId.toLowerCase().includes(q)));
-    // Review queue: oldest submission first (2-business-day target).
-    return state.tab === "review" ? [...rows].sort((a, b) => (a.submittedAtUtc ?? "").localeCompare(b.submittedAtUtc ?? "")) : rows;
+    // Review queue: overdue first, then the nearest server deadline (records without one last), then oldest submission.
+    return state.tab === "review"
+      ? [...rows].sort(
+          (a, b) =>
+            Number(!!b.isOverdue) - Number(!!a.isOverdue) ||
+            (a.reviewDeadlineUtc ?? "9999").localeCompare(b.reviewDeadlineUtc ?? "9999") ||
+            (a.submittedAtUtc ?? "").localeCompare(b.submittedAtUtc ?? ""),
+        )
+      : rows;
   }, [buyers, state.tab, state.q]);
 
   const exportRows = (rows: AdminBuyerListItemDto[]) =>
@@ -80,6 +87,9 @@ function BuyersContent() {
         { header: "Account", value: (b) => b.orgStatus },
         { header: "Submitted (UTC)", value: (b) => b.submittedAtUtc },
         { header: "Verified (UTC)", value: (b) => b.verifiedAtUtc },
+        { header: "Review deadline (UTC)", value: (b) => b.reviewDeadlineUtc ?? "" },
+        { header: "Review SLA", value: (b) => b.reviewSlaStatus ?? "" },
+        { header: "Overdue", value: (b) => (b.isOverdue ? "Yes" : "No") },
       ]),
     );
 
@@ -119,6 +129,14 @@ function BuyersContent() {
         cell: ({ row }) => (row.original.submittedAtUtc ? `${formatDateTime(row.original.submittedAtUtc)} (${ageSince(row.original.submittedAtUtc)})` : "—"),
       },
       {
+        id: "deadline",
+        header: "Review deadline",
+        accessorFn: (b) => b.reviewDeadlineUtc ?? "",
+        cell: ({ row }) =>
+          row.original.reviewDeadlineUtc ? formatDateTime(row.original.reviewDeadlineUtc) : row.original.reviewSlaStatus === "CALENDAR_COVERAGE_MISSING" ? <span className="text-warning">Unavailable</span> : "—",
+      },
+      { id: "sla", header: "SLA", accessorFn: (b) => (b.isOverdue ? "0" : "1") + (b.reviewSlaStatus ?? ""), cell: ({ row }) => <SlaBadge b={row.original} /> },
+      {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
         enableSorting: false,
@@ -150,7 +168,15 @@ function BuyersContent() {
         className="mb-4"
         items={[
           { label: "Buyers", value: formatNumber(buyers.length), hint: "Buyer profiles", icon: <ShoppingCartIcon />, loading, unavailable },
-          { label: "Awaiting review", value: count((b) => matchesTab(b, "review")), hint: "Target: 2 business days", icon: <HourglassIcon />, loading, unavailable },
+          {
+            label: "Awaiting review",
+            value: count((b) => matchesTab(b, "review")),
+            hint: buyers.some((b) => b.isOverdue && matchesTab(b, "review")) ? `${buyers.filter((b) => b.isOverdue && matchesTab(b, "review")).length} overdue` : "Target: 2 UAE business days",
+            hintTone: buyers.some((b) => b.isOverdue && matchesTab(b, "review")) ? "danger" : undefined,
+            icon: <HourglassIcon />,
+            loading,
+            unavailable,
+          },
           { label: "Verified", value: count((b) => matchesTab(b, "verified")), hint: "Can purchase", hintTone: "success", icon: <SealCheckIcon />, loading, unavailable },
           { label: "Re-verification", value: count((b) => b.requiresReverification), hint: "Previously verified, must resubmit", icon: <ArrowsClockwiseIcon />, loading, unavailable },
         ]}
