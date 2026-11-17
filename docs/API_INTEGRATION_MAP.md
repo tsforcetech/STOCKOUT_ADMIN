@@ -74,3 +74,6 @@ running gateway. *No endpoint is marked Live: the gateway was not reachable from
 | `/api/v1/realtime/*` | realtime-gateway | Notifications bell, live activity |
 | `/api/v1/public/*`, `/api/v1/portal/*` | BFFs | — |
 | (none) | — | Orders, Delivery, Inspectors list, Price Guidance, Buyer Requests, Green Points, Content & Banners, Integrations |
+| Orders (BE-09) | `/api/v1/admin/orders/escalations` (`page`, `pageSize` 1–100, `status`, `isOverdue`, `sellerId`) | GET | platform admin or `orders.escalations.view` | Order escalations queue | Integrated, Tested (mocked); bare array, no totals |
+| Orders (BE-09) | `/api/v1/admin/orders/escalations/{id}`, `/{id}/audit` | GET | platform admin or `orders.escalations.view` | Escalation detail + audit trail | Integrated, Tested (mocked) |
+| Orders (BE-09) | `/api/v1/admin/orders/escalations/{id}/decision` (`CANCEL` only, reason + expectedRowVersion) | POST | `orders.escalations.cancel` + `platform.admin`/`platform.superadmin` | Escalation detail → Cancel sub-order | Integrated, Tested (mocked); ⚠ permissions not seeded → cancel blocked (BE-14) |

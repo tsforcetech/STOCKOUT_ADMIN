@@ -1,5 +1,6 @@
 import type { Icon } from "@phosphor-icons/react";
 import {
+  WarningOctagonIcon,
   BellIcon,
   CalendarIcon,
   ClipboardTextIcon,
@@ -97,6 +98,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Inspections", to: "/inspections", icon: UserCheckIcon, permission: P.INSPECTIONS_VIEW },
       { label: "Listing corrections", to: "/corrections", icon: NotePencilIcon, permission: P.INSPECTIONS_VIEW },
       { label: "Inspection disputes", to: "/disputes", icon: ScalesIcon, permission: P.INSPECTIONS_VIEW },
+      { label: "Order escalations", to: "/orders/escalations", icon: WarningOctagonIcon },
       { label: "Orders", to: "/orders", icon: PackageIcon, unavailable: true },
       { label: "Delivery", to: "/delivery", icon: TruckIcon, unavailable: true },
       { label: "Payments & Payouts", to: "/payments", icon: WalletIcon, unavailable: true },
