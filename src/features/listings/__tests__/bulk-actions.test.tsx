@@ -100,4 +100,40 @@ describe("Listings → fast approval", () => {
     await waitFor(() => expect(calls.filter((c) => c.method === "POST" && c.url.pathname.endsWith("/publish"))).toHaveLength(1));
     expect(calls.find((c) => c.url.pathname.endsWith("/publish"))?.body).toEqual({ expectedRowVersion: "rv-11" });
   });
+
+  it("approves from All listings → Under review in the grid, and shows draft photos through the reviewer link", async () => {
+    sessionStorage.setItem("stockout.admin.rt", "rt-1");
+    const item = (l: string, title: string, over: object = {}) => ({
+      listingId: l, sellerId: "s-1", listingNumber: `LST-${l.slice(0, 8)}`, title, categoryId: "c-1", categoryName: "GI fittings", status: "DRAFT", currentDraftVersionId: V(l), currentDraftVersionStatus: "UNDER_REVIEW",
+      publishedVersionId: null, primaryFileAssetId: `f-${l.slice(0, 2)}`, requiresPhysicalInspection: false, isApprovedAwaitingPublication: false, isApprovedAwaitingInitialPublication: false, isApprovedAwaitingReplacementPublication: false,
+      createdAtUtc: "2026-11-17T08:00:00", updatedAtUtc: null, publishedAtUtc: null, ...over,
+    });
+    const status: Record<string, string> = { [L1]: "UNDER_REVIEW", [L2]: "UNDER_REVIEW" };
+    const { calls } = mockFetch([
+      ...sessionRoutes(["catalog:listings:view", "catalog:listings:review", "catalog:listings:approve"]),
+      { method: "GET", path: "/api/v1/admin/catalog/categories", respond: () => ({ body: { success: true, data: [] } }) },
+      { method: "GET", path: "/api/v1/admin/catalog/listings", respond: () => ({ body: { success: true, data: { items: [item(L1, "1 GI TEE"), item(L2, "2 GI ELBOW")], page: 1, pageSize: 20, totalCount: 2 } } }) },
+      {
+        method: "GET",
+        path: /\/versions\/[^/]+\/moderation$/,
+        respond: ({ url }) => {
+          const l = url.pathname.split("/")[6];
+          return { body: { ...detail(l, status[l]), mediaAssets: [{ listingMediaAssetId: "m", fileAssetId: `f-${l.slice(0, 2)}`, isPrimary: true, displayOrder: 1, downloadUrl: `https://media.example/${l.slice(0, 2)}.jpg?sig=1`, expiresAtUtc: "2999-01-01T00:00:00Z" }] } };
+        },
+      },
+      { method: "POST", path: /\/moderation\/decide$/, respond: ({ url }) => { const l = url.pathname.split("/")[6]; status[l] = "APPROVED"; return { body: { listingId: l, listingVersionId: V(l), decision: "APPROVE", versionStatus: "APPROVED", inspectionId: null, inspectionNo: null, reviewedAtUtc: "", rowVersion: "n" } }; } },
+    ]);
+    const { container } = renderWithApp(routes, "/listings?view=review&layout=grid");
+    await screen.findByText("1 GI TEE");
+    // Draft photos aren't public: the card uses the reviewer's presigned URL instead of the public file route.
+    await waitFor(() => expect(container.querySelector('img[src="https://media.example/11.jpg?sig=1"]')).not.toBeNull());
+    expect(container.querySelector('img[src*="/api/v1/files/"]')).toBeNull();
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "Select 1 GI TEE" }));
+    await userEvent.click(screen.getByRole("button", { name: "Approve Selected" }));
+    const dlg = await screen.findByRole("dialog");
+    await userEvent.click(within(dlg).getByRole("button", { name: "Approve 1" }));
+    expect(await within(dlg).findByText(/Finished: 1 done/)).toBeInTheDocument();
+    expect(calls.filter((c) => c.url.pathname.endsWith("/decide")).map((c) => c.url.pathname.split("/")[6])).toEqual([L1]);
+  });
 });

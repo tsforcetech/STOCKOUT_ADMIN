@@ -11,7 +11,7 @@ import { DataTable } from "@/components/tables/data-table";
 import { SearchInput } from "@/components/tables/table-toolbar";
 import { NativeSelect } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/misc";
+import { Badge, Checkbox } from "@/components/ui/misc";
 import { env } from "@/config/env";
 import { useUrlState } from "@/hooks/use-url-state";
 import { useAccess } from "@/lib/auth/use-access";
@@ -67,17 +67,46 @@ export function listingState(l: AdminListingItem): { value: string; label: strin
   return { value: l.status, label: humanize(l.status) };
 }
 
-/** Listing photo from the public file route. Drafts' photos aren't public (backend C4), so fall back to an icon. */
-function Thumb({ fileId, className }: { fileId: string | null; className?: string }) {
-  const [failed, setFailed] = React.useState(false);
-  if (!fileId || failed) {
+/**
+ * Listing photo. Published photos come from the public file route; photos of drafts / versions under review aren't
+ * public (inventory-media only serves publicly eligible listing images anonymously), so for those the moderation
+ * detail of the version is read and its primary photo shown through the reviewer's presigned URL (15 min; cached 10).
+ */
+function Thumb({ listing, className }: { listing: Pick<AdminListingItem, "listingId" | "primaryFileAssetId" | "status"> & { versionId: string | null }; className?: string }) {
+  const fileId = listing.primaryFileAssetId;
+  const [publicFailed, setPublicFailed] = React.useState(false);
+  const [signedFailed, setSignedFailed] = React.useState(false);
+  const usePublic = !!fileId && listing.status === "PUBLISHED" && !publicFailed;
+  const detail = useQuery({
+    queryKey: listing.versionId ? listingKeys.detail(listing.listingId, listing.versionId) : ["listings", "no-version"],
+    queryFn: ({ signal }) => moderationService.detail(listing.listingId, listing.versionId!, signal),
+    enabled: !!fileId && !usePublic && !!listing.versionId,
+    staleTime: 10 * 60_000,
+    retry: false,
+  });
+  const media = detail.data?.mediaAssets ?? [];
+  const primary = media.find((m) => m.fileAssetId === fileId) ?? media.find((m) => m.isPrimary) ?? [...media].sort((a, b) => a.displayOrder - b.displayOrder)[0];
+  const src = usePublic ? `${env.apiBaseUrl}/api/v1/files/${encodeURIComponent(fileId!)}/download` : !signedFailed ? primary?.downloadUrl : null;
+  if (!src) {
     return (
-      <span className={cn("flex items-center justify-center bg-surface-muted text-muted-foreground", className)} aria-hidden>
+      <span className={cn("flex items-center justify-center bg-surface-muted text-muted-foreground", detail.isLoading && "animate-pulse", className)} aria-hidden>
         <ImageIcon className="size-6" />
       </span>
     );
   }
-  return <img src={`${env.apiBaseUrl}/api/v1/files/${encodeURIComponent(fileId)}/download`} alt="" loading="lazy" onError={() => setFailed(true)} className={cn("object-cover", className)} />;
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => {
+        if (usePublic) setPublicFailed(true);
+        else if (!signedFailed && detail.dataUpdatedAt && Date.now() - detail.dataUpdatedAt > 60_000) void detail.refetch(); // expired link: get a fresh one once
+        else setSignedFailed(true);
+      }}
+      className={cn("object-cover", className)}
+    />
+  );
 }
 
 function useCount(q: AdminListingQuery, enabled: boolean) {
@@ -123,13 +152,15 @@ export function AllListings() {
   });
   const items = list.data?.items ?? [];
 
-  // Fast publication: in "Ready to publish", tick several (e.g. after their inspections passed) and publish together.
-  const canBulkPublish = view.key === "ready" && can(P.CATALOG_LISTINGS_PUBLISH) && state.layout !== "grid";
+  // Fast moderation: "Under review" → approve several; "Ready to publish" (e.g. inspections passed) → publish several.
+  const bulkMode: "approve" | "publish" | null =
+    view.key === "review" && can(P.CATALOG_LISTINGS_APPROVE) ? "approve" : view.key === "ready" && can(P.CATALOG_LISTINGS_PUBLISH) ? "publish" : null;
   const [selection, setSelection] = React.useState<RowSelectionState>({});
   const [bulkOpen, setBulkOpen] = React.useState(false);
-  React.useEffect(() => setSelection({}), [view.key, state.page]);
+  React.useEffect(() => setSelection({}), [view.key, state.page, state.pageSize]);
+  const eligible = (i: AdminListingItem) => !!i.currentDraftVersionId && (bulkMode === "approve" ? i.currentDraftVersionStatus === "UNDER_REVIEW" : i.isApprovedAwaitingPublication);
   const selected: BulkTarget[] = items
-    .filter((i) => selection[i.listingId] && i.isApprovedAwaitingPublication && i.currentDraftVersionId)
+    .filter((i) => selection[i.listingId] && eligible(i))
     .map((i) => ({ listingId: i.listingId, versionId: i.currentDraftVersionId!, title: i.title, requiresPhysicalInspection: i.requiresPhysicalInspection }));
 
   const total = useCount({}, true);
@@ -155,7 +186,7 @@ export function AllListings() {
         header: "Listing",
         cell: ({ row }) => (
           <div className="flex min-w-0 items-center gap-3">
-            <Thumb fileId={row.original.primaryFileAssetId} className="size-11 shrink-0 rounded-md" />
+            <Thumb listing={{ ...row.original, versionId: versionToOpen(row.original) }} className="size-11 shrink-0 rounded-md" />
             <span className="min-w-0">
               <span className="block truncate font-medium text-foreground">{row.original.title || "Untitled listing"}</span>
               <span className="block text-xs text-muted-foreground">{row.original.listingNumber}</span>
@@ -325,17 +356,20 @@ export function AllListings() {
           }
         />
 
-        {canBulkPublish && (
+        {bulkMode && (
           <BulkBar count={selected.length} total={items.length} onClear={() => setSelection({})}>
-            <BulkButton onClick={() => setBulkOpen(true)}>Publish Selected</BulkButton>
+            <BulkButton onClick={() => setBulkOpen(true)}>{bulkMode === "approve" ? "Approve Selected" : "Publish Selected"}</BulkButton>
           </BulkBar>
         )}
         {state.layout === "grid" ? (
-          <ListingGrid items={items} loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()} onOpen={open} sellerNames={sellerNames} pagination={pagination} hasFilters={hasFilters || view.key !== "all"} />
+          <ListingGrid
+            selection={bulkMode ? selection : null}
+            onSelectionChange={setSelection}
+            items={items} loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()} onOpen={open} sellerNames={sellerNames} pagination={pagination} hasFilters={hasFilters || view.key !== "all"} />
         ) : (
           <DataTable
             caption="Listings"
-            selectable={canBulkPublish}
+            selectable={!!bulkMode}
             rowSelection={selection}
             onRowSelectionChange={setSelection}
             columns={columns}
@@ -353,7 +387,7 @@ export function AllListings() {
           />
         )}
       </SectionCard>
-      <BulkModerationDialog mode="publish" targets={selected} open={bulkOpen} onOpenChange={setBulkOpen} canPublish onFinished={() => setSelection({})} />
+      {bulkMode && <BulkModerationDialog mode={bulkMode} targets={selected} open={bulkOpen} onOpenChange={setBulkOpen} canPublish={can(P.CATALOG_LISTINGS_PUBLISH)} onFinished={() => setSelection({})} />}
     </>
   );
 }
@@ -367,7 +401,12 @@ function ListingGrid({
   sellerNames,
   pagination,
   hasFilters,
+  selection,
+  onSelectionChange,
 }: {
+  /** Bulk selection by listingId; null = no selection in this view. */
+  selection: RowSelectionState | null;
+  onSelectionChange: (s: RowSelectionState) => void;
   items: AdminListingItem[];
   loading: boolean;
   error: unknown;
@@ -405,13 +444,39 @@ function ListingGrid({
     );
   }
   const pages = Math.max(1, Math.ceil(pagination.totalCount / pagination.pageSize));
+  const allOn = !!selection && items.length > 0 && items.every((l) => selection[l.listingId]);
   return (
     <>
+      {selection && (
+        <label className="mb-3 inline-flex cursor-pointer items-center gap-2 text-sm text-foreground">
+          <Checkbox
+            aria-label="Select all listings on this page"
+            checked={allOn}
+            onCheckedChange={(v) => onSelectionChange(v === true ? Object.fromEntries(items.map((l) => [l.listingId, true])) : {})}
+          />
+          Select all on this page
+        </label>
+      )}
       <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {items.map((l) => {
           const s = listingState(l);
+          const on = !!selection?.[l.listingId];
           return (
-            <li key={l.listingId}>
+            <li key={l.listingId} className={cn("relative rounded-xl", on && "ring-2 ring-foreground")}>
+              {selection && (
+                <span className="absolute right-2 top-2 z-10 flex size-8 items-center justify-center rounded-md bg-surface/90 shadow-sm">
+                  <Checkbox
+                    aria-label={`Select ${l.title || "listing"}`}
+                    checked={on}
+                    onCheckedChange={(v) => {
+                      const next = { ...selection };
+                      if (v === true) next[l.listingId] = true;
+                      else delete next[l.listingId];
+                      onSelectionChange(next);
+                    }}
+                  />
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => onOpen(l)}
@@ -419,7 +484,7 @@ function ListingGrid({
                 className="group flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-surface text-left transition-shadow hover:shadow-raised disabled:cursor-not-allowed"
               >
                 <div className="relative">
-                  <Thumb fileId={l.primaryFileAssetId} className="aspect-[16/10] w-full" />
+                  <Thumb listing={{ ...l, versionId: versionToOpen(l) }} className="aspect-[16/10] w-full" />
                   {l.isApprovedAwaitingPublication && (
                     <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-action px-2 py-0.5 text-xs font-bold text-action-foreground">
                       <RocketLaunchIcon className="size-3.5" /> Ready to publish
