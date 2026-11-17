@@ -17,6 +17,7 @@ build environment's network policy. Live verification with a real admin account 
 | Approvals | Yes | Yes | — | No combined backend queue; three tabs instead |
 | Listings (moderation queue) | Yes | Yes | — | No admin "all listings" API |
 | Listing review & publication | Yes | Yes | — | ⚠ Publish likely fails media-ownership gate (backend) |
+| Fast approval (bulk) | Yes | Yes | Yes — approve selected (inspection policy kept, optional publish), publish selected, skip changed/ineligible | No backend bulk endpoint: runs the single decide/publish calls one by one with a fresh rowVersion each |
 | Sellers | Yes | Yes | Yes — list, approve flow, error state | List lacks contact/GMV fields; no unsuspend API |
 | Catalog: categories (+ detail/mappings) | Yes | Yes | — | ⚠ Category units PUT fails for non-empty list (backend) |
 | Catalog: attributes, brands, units, conditions, grades | Yes | Yes | — | No field-level validation from server (client-side zod instead) |

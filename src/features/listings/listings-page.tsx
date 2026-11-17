@@ -1,9 +1,9 @@
 import * as React from "react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, RowSelectionState } from "@tanstack/react-table";
 import { useNavigate, useSearchParams } from "react-router";
 import { ArrowRightIcon, MagnifyingGlassIcon, PackageIcon, XIcon } from "@phosphor-icons/react";
 import { PageHeader } from "@/components/common/page-header";
-import { SectionCard, Toolbar, RefreshButton, RowAction } from "@/components/common/section-card";
+import { BulkBar, BulkButton, SectionCard, Toolbar, RefreshButton, RowAction } from "@/components/common/section-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { EntityCell } from "@/components/common/entity-cell";
 import { ExportButton } from "@/components/common/export-button";
@@ -20,6 +20,7 @@ import type { ListingModerationQueueItem, ModerationQueueQuery } from "@/api/typ
 import { formatMoney, humanize } from "@/lib/utils/format";
 import { downloadCsv, toCsv } from "@/lib/utils/csv";
 import { useModerationQueueQuery } from "./queries";
+import { BulkModerationDialog, type BulkTarget } from "./bulk-actions";
 import { GuidFilterInput, Notice, PersonText, ageSince, dateInputToUtc, fmtUtc, isGuid, shortId, useSellerNames } from "./shared";
 
 export const reviewPath = (item: { listingId: string; listingVersionId: string }) => `/listings/${item.listingId}/versions/${item.listingVersionId}`;
@@ -28,6 +29,10 @@ const DEFAULTS = { page: 1, pageSize: 20, inspection: "", from: "", to: "", cate
 
 function ReviewQueue() {
   const navigate = useNavigate();
+  const { can } = useAccess();
+  const canApprove = can(P.CATALOG_LISTINGS_APPROVE);
+  const [selection, setSelection] = React.useState<RowSelectionState>({});
+  const [bulkOpen, setBulkOpen] = React.useState(false);
   const [state, setState] = useUrlState(DEFAULTS);
   const sellerNames = useSellerNames();
   const [jump, setJump] = React.useState({ listingId: "", versionId: "" });
@@ -116,6 +121,9 @@ function ReviewQueue() {
     );
 
   const canJump = isGuid(jump.listingId) && isGuid(jump.versionId);
+  const selected: BulkTarget[] = items
+    .filter((i) => selection[i.listingVersionId])
+    .map((i) => ({ listingId: i.listingId, versionId: i.listingVersionId, title: i.title, requiresPhysicalInspection: i.requiresPhysicalInspection }));
 
   return (
     <>
@@ -159,8 +167,16 @@ function ReviewQueue() {
             </>
           }
         />
+        {canApprove && (
+          <BulkBar count={selected.length} total={items.length} onClear={() => setSelection({})}>
+            <BulkButton onClick={() => setBulkOpen(true)}>Approve Selected</BulkButton>
+          </BulkBar>
+        )}
         <DataTable
           caption="Listing versions awaiting moderation"
+          selectable={canApprove}
+          rowSelection={selection}
+          onRowSelectionChange={setSelection}
           columns={columns}
           data={items}
           getRowId={(i) => i.listingVersionId}
@@ -199,6 +215,7 @@ function ReviewQueue() {
           </form>
         </div>
       </SectionCard>
+      <BulkModerationDialog mode="approve" targets={selected} open={bulkOpen} onOpenChange={setBulkOpen} canPublish={can(P.CATALOG_LISTINGS_PUBLISH)} onFinished={() => setSelection({})} />
     </>
   );
 }

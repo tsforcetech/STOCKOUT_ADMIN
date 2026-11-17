@@ -1,9 +1,9 @@
 import * as React from "react";
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, RowSelectionState } from "@tanstack/react-table";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { ArrowRightIcon, ClockIcon, ImageIcon, PackageIcon, RocketLaunchIcon, StorefrontIcon, SquaresFourIcon, ListBulletsIcon, XIcon } from "@phosphor-icons/react";
-import { SectionCard, Toolbar, RefreshButton, RowAction } from "@/components/common/section-card";
+import { BulkBar, BulkButton, SectionCard, Toolbar, RefreshButton, RowAction } from "@/components/common/section-card";
 import { FilterPills } from "@/components/common/filter-pills";
 import { StatCards, type StatItem } from "@/components/common/stat-cards";
 import { StatusBadge } from "@/components/common/status-badge";
@@ -26,6 +26,7 @@ import { ExportButton } from "@/components/common/export-button";
 import { downloadCsv, toCsv } from "@/lib/utils/csv";
 import { PersonText, fmtUtc, useSellerNames } from "./shared";
 import { listingKeys } from "./queries";
+import { BulkModerationDialog, type BulkTarget } from "./bulk-actions";
 
 /** Quick views over the F2-A filters. `null` = no filter. */
 const VIEWS: Array<{ key: string; label: string; status?: AdminListingStatus; moderationStatus?: AdminListingModerationStatus }> = [
@@ -121,6 +122,15 @@ export function AllListings() {
     placeholderData: (prev) => prev,
   });
   const items = list.data?.items ?? [];
+
+  // Fast publication: in "Ready to publish", tick several (e.g. after their inspections passed) and publish together.
+  const canBulkPublish = view.key === "ready" && can(P.CATALOG_LISTINGS_PUBLISH) && state.layout !== "grid";
+  const [selection, setSelection] = React.useState<RowSelectionState>({});
+  const [bulkOpen, setBulkOpen] = React.useState(false);
+  React.useEffect(() => setSelection({}), [view.key, state.page]);
+  const selected: BulkTarget[] = items
+    .filter((i) => selection[i.listingId] && i.isApprovedAwaitingPublication && i.currentDraftVersionId)
+    .map((i) => ({ listingId: i.listingId, versionId: i.currentDraftVersionId!, title: i.title, requiresPhysicalInspection: i.requiresPhysicalInspection }));
 
   const total = useCount({}, true);
   const ready = useCount({ moderationStatus: "APPROVED" }, true);
@@ -315,11 +325,19 @@ export function AllListings() {
           }
         />
 
+        {canBulkPublish && (
+          <BulkBar count={selected.length} total={items.length} onClear={() => setSelection({})}>
+            <BulkButton onClick={() => setBulkOpen(true)}>Publish Selected</BulkButton>
+          </BulkBar>
+        )}
         {state.layout === "grid" ? (
           <ListingGrid items={items} loading={list.isLoading} error={list.error} onRetry={() => void list.refetch()} onOpen={open} sellerNames={sellerNames} pagination={pagination} hasFilters={hasFilters || view.key !== "all"} />
         ) : (
           <DataTable
             caption="Listings"
+            selectable={canBulkPublish}
+            rowSelection={selection}
+            onRowSelectionChange={setSelection}
             columns={columns}
             data={items}
             getRowId={(i) => i.listingId}
@@ -335,6 +353,7 @@ export function AllListings() {
           />
         )}
       </SectionCard>
+      <BulkModerationDialog mode="publish" targets={selected} open={bulkOpen} onOpenChange={setBulkOpen} canPublish onFinished={() => setSelection({})} />
     </>
   );
 }
