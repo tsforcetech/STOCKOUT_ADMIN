@@ -60,6 +60,15 @@ const appRoutes: RouteObject[] = [
     ],
   },
   {
+    path: "orders",
+    handle: { crumb: "Orders" },
+    children: [
+      { index: true, lazy: page(() => import("@/features/orders/orders-page")) },
+      { path: "payments", lazy: page(() => import("@/features/orders/payment-authorizations-page")), handle: { crumb: "Stuck payments" } },
+      { path: ":orderId", lazy: page(() => import("@/features/orders/order-detail-page")), handle: { crumb: "Order" } },
+    ],
+  },
+  {
     path: "orders/escalations",
     handle: { crumb: "Order escalations" },
     children: [

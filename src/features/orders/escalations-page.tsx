@@ -15,6 +15,7 @@ import { formatNumber } from "@/lib/utils/format";
 import type { SellerSubOrderEscalationDto } from "@/api/types/order-escalations";
 import { escalationKeys, orderEscalationsService } from "@/services/order-escalations.service";
 import { GuidFilterInput, fmtUtc } from "@/features/listings/shared";
+import { OrdersNav } from "./orders-page";
 
 export const RESOLUTION_LABEL: Record<string, string> = {
   PENDING: "Awaiting admin",
@@ -89,6 +90,7 @@ export default function EscalationsPage() {
         title="Order escalations"
         description="Seller orders not confirmed in time. Review each case; cancelling a seller's part of an order is the only approved action and needs a documented reason."
       />
+      <OrdersNav />
       <SectionCard>
         <Toolbar
           left={
