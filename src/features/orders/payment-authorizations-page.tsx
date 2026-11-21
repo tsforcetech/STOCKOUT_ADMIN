@@ -21,7 +21,7 @@ import type { AdminPaymentAuthorizationDto } from "@/api/types/admin-orders";
 import { adminOrderKeys, adminOrdersService } from "@/services/admin-orders.service";
 import { Notice, fmtUtc } from "@/features/listings/shared";
 import { OrdersNav } from "./orders-page";
-import { PaymentBadge } from "./order-labels";
+import { OrdersAccessNotice, PaymentBadge } from "./order-labels";
 import { adminMessage } from "./order-detail-page";
 
 const VIEWS = [
@@ -151,6 +151,7 @@ export default function PaymentAuthorizationsPage() {
     <>
       <PageHeader eyebrow="Operations" title="Stuck payments" description="Card holds from checkout. A hold with no order still blocks the buyer's money and may reserve stock: cancel it with a reason. Holds that belong to an order are cancelled from the order." />
       <OrdersNav />
+      <OrdersAccessNotice error={list.error} />
       <SectionCard>
         <FilterPills className="mb-3" label="Payment state" items={VIEWS} value={s.status} onChange={(status) => set({ status }, { resetPage: true })} />
         <Toolbar

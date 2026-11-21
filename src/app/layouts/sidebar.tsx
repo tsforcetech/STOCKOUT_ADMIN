@@ -28,10 +28,12 @@ import {
   type NavItem,
 } from "@/app/router/nav";
 
+const matches = (pathname: string, to: string) => (to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`));
+
+/** Active when the path is under the item, unless a more specific menu item (e.g. /orders/escalations under /orders) matches it. */
 export function isNavItemActive(pathname: string, item: NavItem): boolean {
-  return item.to === "/"
-    ? pathname === "/"
-    : pathname === item.to || pathname.startsWith(`${item.to}/`);
+  if (!matches(pathname, item.to)) return false;
+  return !NAV_GROUPS.some((g) => g.items.some((other) => other.to.length > item.to.length && other.to.startsWith(`${item.to}/`) && matches(pathname, other.to)));
 }
 
 export function useVisibleNav(): NavGroup[] {

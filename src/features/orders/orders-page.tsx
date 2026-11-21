@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils/cn";
 import type { AdminOrderListItemDto } from "@/api/types/admin-orders";
 import { adminOrderKeys, adminOrdersService } from "@/services/admin-orders.service";
 import { fmtUtc } from "@/features/listings/shared";
-import { OrderStatusBadge, PAYMENT_STATUS_FILTER, PaymentBadge, paymentLabel } from "./order-labels";
+import { OrderStatusBadge, OrdersAccessNotice, PAYMENT_STATUS_FILTER, PaymentBadge, paymentLabel } from "./order-labels";
 
 /** Orders · Stuck payments · Escalations, shown on each order-monitoring page. */
 export function OrdersNav() {
@@ -130,6 +130,7 @@ export default function OrdersPage() {
     <>
       <PageHeader eyebrow="Operations" title="Orders" description="Every marketplace order: who bought, which sellers, where it stands and what happened to the payment. A card hold is not money received until it is captured." />
       <OrdersNav />
+      <OrdersAccessNotice error={list.error} />
       <StatCards
         className="mb-4"
         items={[

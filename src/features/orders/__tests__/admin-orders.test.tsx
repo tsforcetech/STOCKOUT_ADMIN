@@ -121,4 +121,12 @@ describe("BE-25 admin order monitoring", () => {
     expect(post.reason).toBe("Orphaned hold after hold failure");
     expect(post.idempotencyKey).toMatch(/^admin_pay_cancel_/);
   });
+
+  it("explains a 403 instead of showing an empty list", async () => {
+    sessionStorage.setItem("stockout.admin.rt", "rt-1");
+    const forbidden = () => ({ status: 403, body: { status: 403, code: "FORBIDDEN", title: "Forbidden", detail: "Platform administrator authorization is required." } });
+    mockFetch([...sessionRoutes(["catalog:listings:view"]), { method: "GET", path: `${BASE}/summary`, respond: forbidden }, { method: "GET", path: BASE, respond: forbidden }]);
+    renderWithApp(routes, "/orders");
+    expect(await screen.findByText("Your admin account can't see orders yet")).toBeInTheDocument();
+  });
 });

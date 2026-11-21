@@ -1,4 +1,6 @@
 import { Badge, type BadgeTone } from "@/components/ui/misc";
+import { isApiError } from "@/lib/api/errors";
+import { Notice } from "@/features/listings/shared";
 import { humanize } from "@/lib/utils/format";
 
 /** Order statuses an admin can filter by (BE-25 §4.2). */
@@ -74,3 +76,13 @@ export const ADMIN_ORDER_MESSAGES: Record<string, string> = {
   MANDATORY_CANCELLATION_REASON: "Write the reason for cancelling.",
   FORBIDDEN: "Only Platform Admins can do this.",
 };
+
+/** BE-25 answers 403 when the admin lacks the backend's order-monitoring permission: say so instead of showing an empty list. */
+export function OrdersAccessNotice({ error }: { error: unknown }) {
+  if (!isApiError(error) || error.status !== 403) return null;
+  return (
+    <Notice tone="warning" className="mb-4" title="Your admin account can't see orders yet">
+      The orders service needs the platform.admin or orders.escalations.view permission on your account. Ask the backend team to add it to the Super Admin / Platform Admin role.
+    </Notice>
+  );
+}
