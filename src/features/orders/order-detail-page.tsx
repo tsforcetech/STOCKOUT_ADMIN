@@ -17,6 +17,7 @@ import { newId } from "@/lib/utils/id";
 import type { AdminOrderDetailDto, AdminSubOrderDto, AdminTimelineEventDto } from "@/api/types/admin-orders";
 import { adminOrderKeys, adminOrdersService } from "@/services/admin-orders.service";
 import { Notice, PanelTitle, fmtUtc } from "@/features/listings/shared";
+import { env } from "@/config/env";
 import { ADMIN_ORDER_MESSAGES, OrderStatusBadge, PaymentBadge, SubStatusBadge, canCancelOrder } from "./order-labels";
 
 export const adminMessage = (e: unknown) => (isApiError(e) && e.code && ADMIN_ORDER_MESSAGES[e.code]) || (isApiError(e) ? e.message : "Something went wrong.");
@@ -46,13 +47,7 @@ function SellerPart({ so, currency }: { so: AdminSubOrderDto; currency: string }
       <ul className="divide-y divide-border">
         {so.items.map((it) => (
           <li key={it.orderLineId} className="flex items-center gap-3 px-4 py-3 text-sm">
-            {it.thumbnailUrlSnapshot ? (
-              <img src={it.thumbnailUrlSnapshot} alt="" className="size-11 shrink-0 rounded-md object-cover" />
-            ) : (
-              <span className="grid size-11 shrink-0 place-items-center rounded-md bg-surface-muted text-muted-foreground">
-                <ImageIcon className="size-5" aria-hidden />
-              </span>
-            )}
+            <ItemThumb path={it.thumbnailUrlSnapshot} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium text-foreground">{it.titleSnapshot || "Item"}</p>
               <p className="text-xs text-muted-foreground">
@@ -147,6 +142,25 @@ function CancelOrder({ d }: { d: AdminOrderDetailDto }) {
       />
     </div>
   );
+}
+
+/**
+ * Item photo from the order snapshot. The snapshot holds the gateway-relative file route
+ * ("/api/v1/files/{id}/download"), so it must be resolved against the API host, not this site; a photo that can't be
+ * loaded (e.g. the listing is no longer public) falls back to the placeholder.
+ */
+export const orderAssetUrl = (path: string | null | undefined) => (!path ? null : /^https?:\/\//.test(path) ? path : `${env.apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`);
+
+function ItemThumb({ path }: { path: string | null | undefined }) {
+  const [failed, setFailed] = React.useState(false);
+  const src = orderAssetUrl(path);
+  if (!src || failed)
+    return (
+      <span className="grid size-11 shrink-0 place-items-center rounded-md bg-surface-muted text-muted-foreground">
+        <ImageIcon className="size-5" aria-hidden />
+      </span>
+    );
+  return <img src={src} alt="" loading="lazy" onError={() => setFailed(true)} className="size-11 shrink-0 rounded-md object-cover" />;
 }
 
 export default function OrderDetailPage() {

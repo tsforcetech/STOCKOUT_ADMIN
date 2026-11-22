@@ -25,7 +25,7 @@ const detail = (order: object = {}, payment: object = {}) => ({
   order: {
     orderId: ORD, orderNumber: "SO-10000001", buyerUserId: "7cb13120-769d-4a34-ae96-84bca1606807", buyerOrganizationId: null, orderDateUtc: "2026-11-21T11:45:00Z", currency: "AED", aggregateMaterialAmount: 39.38, applicableMaterialVat: 1.97,
     deliveryAmount: 0, deliveryVatAmount: 0, totalPayableAmount: 41.35, status: "PENDING_CONFIRMATION", paymentStatus: "AUTHORIZED", paymentReference: "pi_1", paymentAuthorizedAtUtc: null, rowVersion: "AAAAAAAACzw=", createdAtUtc: "2026-11-21T11:45:00Z", updatedAtUtc: null,
-    subOrders: [{ ...seller, parentOrderId: ORD, materialSubtotal: 39.38, applicableMaterialVat: 1.97, claimStatus: "NONE", payoutEligibility: "NOT_ELIGIBLE", deliveredAtUtc: null, sellerConfirmedAtUtc: "2026-11-21T11:54:44Z", sellerRejectedAtUtc: null, sellerRejectionReason: null, timeRemainingSeconds: 82500, items: [{ orderLineId: "l-1", listingId: "x", titleSnapshot: "Industrial Steel Pipe Lot", thumbnailUrlSnapshot: null, quantity: 1, unitPrice: 39.38, currency: "AED", taxAmount: 1.97, lineSubtotal: 39.38, lineTotal: 41.35, isWholeLot: true }] }],
+    subOrders: [{ ...seller, parentOrderId: ORD, materialSubtotal: 39.38, applicableMaterialVat: 1.97, claimStatus: "NONE", payoutEligibility: "NOT_ELIGIBLE", deliveredAtUtc: null, sellerConfirmedAtUtc: "2026-11-21T11:54:44Z", sellerRejectedAtUtc: null, sellerRejectionReason: null, timeRemainingSeconds: 82500, items: [{ orderLineId: "l-1", listingId: "x", titleSnapshot: "Industrial Steel Pipe Lot", thumbnailUrlSnapshot: "/api/v1/files/f1f1f1f1-0000-4000-8000-000000000001/download", quantity: 1, unitPrice: 39.38, currency: "AED", taxAmount: 1.97, lineSubtotal: 39.38, lineTotal: 41.35, isWholeLot: true }] }],
     ...order,
   },
   buyer: { buyerUserId: "7cb13120", buyerOrganizationId: null, buyerAccountType: "INDIVIDUAL", displayName: "Hakeem", email: null },
@@ -128,5 +128,14 @@ describe("BE-25 admin order monitoring", () => {
     mockFetch([...sessionRoutes(["catalog:listings:view"]), { method: "GET", path: `${BASE}/summary`, respond: forbidden }, { method: "GET", path: BASE, respond: forbidden }]);
     renderWithApp(routes, "/orders");
     expect(await screen.findByText("Your admin account can't see orders yet")).toBeInTheDocument();
+  });
+
+  it("resolves the order's relative photo route against the API host", async () => {
+    const { orderAssetUrl } = await import("../order-detail-page");
+    const { env } = await import("@/config/env");
+    expect(orderAssetUrl("/api/v1/files/f1/download")).toBe(`${env.apiBaseUrl}/api/v1/files/f1/download`);
+    expect(orderAssetUrl("api/v1/files/f1/download")).toBe(`${env.apiBaseUrl}/api/v1/files/f1/download`);
+    expect(orderAssetUrl("https://cdn.example/x.jpg")).toBe("https://cdn.example/x.jpg");
+    expect(orderAssetUrl(null)).toBeNull();
   });
 });
