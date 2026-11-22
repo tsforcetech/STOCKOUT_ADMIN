@@ -19,7 +19,7 @@ import { adminOrderKeys, adminOrdersService } from "@/services/admin-orders.serv
 import { Notice, PanelTitle, fmtUtc } from "@/features/listings/shared";
 import { env } from "@/config/env";
 import { DeliveryProof, DeliveryUpdate } from "./delivery-panel";
-import { ADMIN_ORDER_MESSAGES, OrderStatusBadge, PaymentBadge, SubStatusBadge, canCancelOrder } from "./order-labels";
+import { ADMIN_ORDER_MESSAGES, OrderStatusBadge, PaymentBadge, SubStatusBadge, canCancelOrder, effectiveOrderStatus, showFulfilmentBadge } from "./order-labels";
 
 export const adminMessage = (e: unknown) => (isApiError(e) && e.code && ADMIN_ORDER_MESSAGES[e.code]) || (isApiError(e) ? e.message : "Something went wrong.");
 
@@ -41,7 +41,7 @@ function SellerPart({ so, currency, orderId }: { so: AdminSubOrderDto; currency:
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <SubStatusBadge value={so.status} />
-          {so.fulfillmentStatus && so.fulfillmentStatus !== "NOT_STARTED" && <SubStatusBadge value={so.fulfillmentStatus} />}
+          {showFulfilmentBadge(so.status, so.fulfillmentStatus) && <SubStatusBadge value={so.fulfillmentStatus!} />}
           {so.isEscalated && <Badge tone="warning">Escalated</Badge>}
         </div>
       </div>
@@ -190,7 +190,8 @@ export default function OrderDetailPage() {
   const p = d.payment;
   const cur = o.currency || "AED";
   const captured = p?.isPaymentCaptured ?? false;
-  const cancellable = canCancelOrder(o.status, captured);
+  const stage = effectiveOrderStatus(o);
+  const cancellable = canCancelOrder(stage, captured);
 
   return (
     <>
@@ -203,7 +204,7 @@ export default function OrderDetailPage() {
         description={`Placed ${fmtUtc(o.orderDateUtc)} · ${o.subOrders.length} seller${o.subOrders.length === 1 ? "" : "s"} · ${formatMoney(o.totalPayableAmount, cur)}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <OrderStatusBadge value={o.status} />
+            <OrderStatusBadge value={stage} />
             <PaymentBadge status={p?.requiresReconciliation ? "RECONCILIATION_REQUIRED" : o.paymentStatus} captured={captured} capturedAmount={p?.capturedAmount} />
             <RefreshButton onClick={() => (void q.refetch(), void tl.refetch())} spinning={q.isFetching} />
           </div>
@@ -286,7 +287,7 @@ export default function OrderDetailPage() {
               <CancelOrder key={o.rowVersion} d={d} />
             ) : (
               <p className="text-sm text-muted-foreground">
-                {o.status === "CANCELLED" ? "This order is cancelled." : captured ? "The payment is captured, so this order can't be cancelled here." : "Fulfilment has started, so this order can't be cancelled here."}
+                {stage === "CANCELLED" ? "This order is cancelled." : captured ? "The payment is captured, so this order can't be cancelled here." : "Fulfilment has started, so this order can't be cancelled here."}
               </p>
             )}
           </SectionCard>

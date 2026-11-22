@@ -9,6 +9,7 @@ export const ORDER_STATUS: Record<string, { label: string; tone: BadgeTone }> = 
   CONFIRMED: { label: "Confirmed", tone: "info" },
   IN_FULFILLMENT: { label: "In fulfilment", tone: "info" },
   COMPLETED: { label: "Completed", tone: "success" },
+  DELIVERED: { label: "Delivered", tone: "success" },
   CANCELLED: { label: "Cancelled", tone: "neutral" },
   DRAFT: { label: "Draft", tone: "neutral" },
 };
@@ -63,6 +64,32 @@ export function PaymentBadge({ status, captured, capturedAmount }: { status: str
 export const PAYMENT_STATUS_FILTER = ["AUTHORIZED", "CAPTURED", "VOIDED", "RECONCILIATION_REQUIRED", "AUTHORIZATION_EXPIRED", "REFUNDED", "FAILED"];
 
 /** Order cancel is offered only before dispatch and before capture (BE-25 §4.7); the server re-checks. */
+const up = (v: string | null | undefined) => (v ?? "").toUpperCase();
+const DONE = new Set(["CANCELLED", "REJECTED"]);
+const FINISHED = new Set(["COMPLETED", "ACCEPTED"]);
+
+/**
+ * The order's real stage from its seller parts. BiddingDeal never moves the parent order off PENDING_CONFIRMATION after
+ * sellers confirm (OJ-14), so trusting it alone shows "Awaiting seller" on delivered orders and offers Cancel. The
+ * parent value wins only when it is already further along (CANCELLED / COMPLETED) or no part says otherwise.
+ */
+export function effectiveOrderStatus(o: { status: string; subOrders: { status: string; fulfillmentStatus?: string | null }[] }): string {
+  const parent = up(o.status);
+  if (parent === "CANCELLED" || parent === "COMPLETED" || !o.subOrders.length) return parent;
+  const subs = o.subOrders.map((s) => ({ st: up(s.status), f: up(s.fulfillmentStatus) }));
+  if (subs.some((s) => s.st === "PENDING_CONFIRMATION")) return "PENDING_CONFIRMATION";
+  const live = subs.filter((s) => !DONE.has(s.st));
+  if (!live.length) return "CANCELLED";
+  if (live.every((s) => FINISHED.has(s.st))) return "COMPLETED";
+  if (live.every((s) => FINISHED.has(s.st) || s.st === "DELIVERED" || s.f === "DELIVERED")) return "DELIVERED";
+  if (live.some((s) => s.st === "IN_FULFILLMENT" || (s.f && s.f !== "NOT_STARTED") || s.st === "DELIVERED")) return "IN_FULFILLMENT";
+  return "CONFIRMED";
+}
+
+/** Seller-part badges: the fulfilment step only when it adds something (no "Delivered · Delivered"). */
+export const showFulfilmentBadge = (status: string, fulfillmentStatus: string | null | undefined) =>
+  !!fulfillmentStatus && up(fulfillmentStatus) !== "NOT_STARTED" && up(fulfillmentStatus) !== up(status);
+
 export const canCancelOrder = (status: string, captured: boolean) => (status === "PENDING_CONFIRMATION" || status === "CONFIRMED") && !captured;
 
 export const ADMIN_ORDER_MESSAGES: Record<string, string> = {
