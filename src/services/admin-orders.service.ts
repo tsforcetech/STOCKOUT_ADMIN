@@ -18,7 +18,9 @@ const payments = "/api/v1/admin/payment-authorizations";
 const opt = (v: string | undefined) => v || undefined;
 
 export const adminOrdersService = {
-  summary: (signal?: AbortSignal) => http.get<AdminOrdersSummaryDto>(`${orders}/summary`, { signal }),
+  /** Counts for the period (fromUtc/toUtc optional; none = all time). */
+  summary: (range: { fromUtc?: string; toUtc?: string } = {}, signal?: AbortSignal) =>
+    http.get<AdminOrdersSummaryDto>(`${orders}/summary`, { signal, query: { fromUtc: opt(range.fromUtc), toUtc: opt(range.toUtc) } }),
   list: (q: AdminOrderListQuery, signal?: AbortSignal) =>
     http.get<PagedResponse<AdminOrderListItemDto>>(orders, {
       signal,
@@ -36,7 +38,7 @@ export const adminOrdersService = {
 
 export const adminOrderKeys = {
   all: ["admin-orders"] as const,
-  summary: ["admin-orders", "summary"] as const,
+  summary: (range: { fromUtc?: string; toUtc?: string } = {}) => ["admin-orders", "summary", range] as const,
   list: (q: AdminOrderListQuery) => ["admin-orders", "list", q] as const,
   detail: (id: string) => ["admin-orders", "detail", id] as const,
   timeline: (id: string) => ["admin-orders", "timeline", id] as const,

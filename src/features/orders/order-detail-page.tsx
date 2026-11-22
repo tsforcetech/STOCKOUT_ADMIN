@@ -154,7 +154,7 @@ function CancelOrder({ d }: { d: AdminOrderDetailDto }) {
  */
 export const orderAssetUrl = (path: string | null | undefined) => (!path ? null : /^https?:\/\//.test(path) ? path : `${env.apiBaseUrl}${path.startsWith("/") ? path : `/${path}`}`);
 
-function ItemThumb({ path }: { path: string | null | undefined }) {
+export function ItemThumb({ path }: { path: string | null | undefined }) {
   const [failed, setFailed] = React.useState(false);
   const src = orderAssetUrl(path);
   if (!src || failed)

@@ -46,6 +46,7 @@ describe("BE-25 admin order monitoring", () => {
       ...sessionRoutes(["catalog:listings:view"]),
       { method: "GET", path: `${BASE}/summary`, respond: () => ({ body: summary }) },
       { method: "GET", path: BASE, respond: () => ({ body: page([row(), row({ orderId: "o-2", orderNumber: "SO-10000002", paymentStatus: "CAPTURED", isPaymentCaptured: true, capturedAmount: 41.35, orderStatus: "COMPLETED" })]) }) },
+      { method: "GET", path: `${BASE}/${ORD}`, respond: () => ({ body: detail() }) },
     ]);
     const { router } = renderWithApp(routes, "/orders");
     expect(await screen.findByText("SO-10000001")).toBeInTheDocument();
@@ -54,7 +55,14 @@ describe("BE-25 admin order monitoring", () => {
     expect(within(screen.getByRole("table")).getByText("Captured")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("tab", { name: /Awaiting seller/ }));
     await waitFor(() => expect(calls.filter((c) => c.url.pathname === BASE).at(-1)!.url.searchParams.get("status")).toBe("PENDING_CONFIRMATION"));
+    // Default period is the last 30 days, sent to both the list and the summary.
+    expect(calls.find((c) => c.url.pathname === BASE)!.url.searchParams.get("fromUtc")).toBeTruthy();
+    expect(calls.find((c) => c.url.pathname === `${BASE}/summary`)!.url.searchParams.get("fromUtc")).toBeTruthy();
+    // A row opens the quick view; "Open order" goes to the full page.
     await userEvent.click(await screen.findByText("SO-10000001"));
+    const panel = await screen.findByRole("dialog");
+    expect(await within(panel).findByText("Industrial Steel Pipe Lot")).toBeInTheDocument();
+    await userEvent.click(within(panel).getByRole("link", { name: /Open order/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe(`/orders/${ORD}`));
   });
 
