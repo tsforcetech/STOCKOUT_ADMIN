@@ -66,6 +66,7 @@ const appRoutes: RouteObject[] = [
     children: [
       { index: true, lazy: page(() => import("@/features/orders/orders-page")) },
       { path: "payments", lazy: page(() => import("@/features/orders/payment-authorizations-page")), handle: { crumb: "Stuck payments" } },
+      { path: "claims", lazy: page(() => import("@/features/orders/claims-page")), handle: { crumb: "Claims" } },
       { path: ":orderId", lazy: page(() => import("@/features/orders/order-detail-page")), handle: { crumb: "Order" } },
     ],
   },

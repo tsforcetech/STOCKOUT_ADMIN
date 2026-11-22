@@ -120,6 +120,8 @@ export interface AdminSubOrderDto {
   isEscalated: boolean;
   isOverdue: boolean;
   timeRemainingSeconds: number | null;
+  /** Base64 sub-order rowversion; sent as expectedRowVersion on a delivery update. */
+  rowVersion: string;
   items: AdminOrderLineDto[];
 }
 

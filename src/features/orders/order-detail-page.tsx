@@ -18,6 +18,7 @@ import type { AdminOrderDetailDto, AdminSubOrderDto, AdminTimelineEventDto } fro
 import { adminOrderKeys, adminOrdersService } from "@/services/admin-orders.service";
 import { Notice, PanelTitle, fmtUtc } from "@/features/listings/shared";
 import { env } from "@/config/env";
+import { DeliveryProof, DeliveryUpdate } from "./delivery-panel";
 import { ADMIN_ORDER_MESSAGES, OrderStatusBadge, PaymentBadge, SubStatusBadge, canCancelOrder } from "./order-labels";
 
 export const adminMessage = (e: unknown) => (isApiError(e) && e.code && ADMIN_ORDER_MESSAGES[e.code]) || (isApiError(e) ? e.message : "Something went wrong.");
@@ -30,7 +31,7 @@ function timeLeft(so: AdminSubOrderDto) {
   return <span className="text-xs text-muted-foreground">{m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`} left to confirm</span>;
 }
 
-function SellerPart({ so, currency }: { so: AdminSubOrderDto; currency: string }) {
+function SellerPart({ so, currency, orderId }: { so: AdminSubOrderDto; currency: string; orderId: string }) {
   return (
     <div className="rounded-lg border border-border">
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border bg-surface-muted px-4 py-3">
@@ -67,6 +68,8 @@ function SellerPart({ so, currency }: { so: AdminSubOrderDto; currency: string }
         <span className="font-medium">Seller total {formatMoney(so.subOrderTotal, currency)}</span>
       </div>
       {so.sellerRejectionReason && <p className="border-t border-border px-4 py-2 text-sm text-danger">Reason: {so.sellerRejectionReason}</p>}
+      <DeliveryUpdate orderId={orderId} so={so} />
+      <DeliveryProof so={so} />
     </div>
   );
 }
@@ -212,7 +215,7 @@ export default function OrderDetailPage() {
             <PanelTitle title="Sellers and items" />
             <div className="mb-4 space-y-3">
               {o.subOrders.map((so) => (
-                <SellerPart key={so.subOrderId} so={so} currency={cur} />
+                <SellerPart key={so.subOrderId} so={so} currency={cur} orderId={o.orderId} />
               ))}
             </div>
             <DetailList

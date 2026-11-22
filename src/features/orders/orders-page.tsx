@@ -35,6 +35,9 @@ export function OrdersNav() {
       <NavLink to="/orders/escalations" className={tab}>
         Escalations
       </NavLink>
+      <NavLink to="/orders/claims" className={tab}>
+        Claims
+      </NavLink>
     </nav>
   );
 }
