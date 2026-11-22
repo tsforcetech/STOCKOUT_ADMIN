@@ -20,6 +20,7 @@ build environment's network policy. Live verification with a real admin account 
 | Fast approval (bulk) | Yes | Yes | Yes — approve selected (inspection policy kept, optional publish), publish selected, skip changed/ineligible | No backend bulk endpoint: runs the single decide/publish calls one by one with a fresh rowVersion each |
 | Order escalations (BE-09) | Yes | Yes | Yes — queue (status/overdue/seller), detail, audit trail, cancel with reason + rowVersion, conflict/forbidden messages | Cancel blocked until backend seeds orders.escalations.cancel / platform.superadmin (BE-14); queue has no total count |
 | Payments & Payouts (finance checks) | Yes | Yes | Yes — order commission, capture readiness, refund evaluation, sub-order settlement checklist | Lookup by order / sub-order ID only (no list API); money-movement endpoints deliberately not exposed |
+| Order delivery & claims | Yes | Yes | Yes: freight steps (preparing / in transit / delivered with proof), proof list and add, claims queue | Claims can't be resolved (no API); seller-arranged freight has no seller actions (OJ-06) |
 | Sellers | Yes | Yes | Yes — list, approve flow, error state | List lacks contact/GMV fields; no unsuspend API |
 | Catalog: categories (+ detail/mappings) | Yes | Yes | — | ⚠ Category units PUT fails for non-empty list (backend) |
 | Catalog: attributes, brands, units, conditions, grades | Yes | Yes | — | No field-level validation from server (client-side zod instead) |
