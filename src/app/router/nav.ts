@@ -101,7 +101,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Orders", to: "/orders", icon: PackageIcon },
       { label: "Order escalations", to: "/orders/escalations", icon: WarningOctagonIcon },
       { label: "Delivery", to: "/delivery", icon: TruckIcon, unavailable: true },
-      { label: "Payments & Payouts", to: "/payments", icon: WalletIcon, unavailable: true },
+      { label: "Payments & Payouts", to: "/payments", icon: WalletIcon },
       { label: "Green points", to: "/green-points", icon: LeafIcon, unavailable: true },
       { label: "Support & Disputes", to: "/support", icon: HeadsetIcon, unavailable: true },
     ],

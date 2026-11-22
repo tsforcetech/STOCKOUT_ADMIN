@@ -19,6 +19,7 @@ build environment's network policy. Live verification with a real admin account 
 | Listing review & publication | Yes | Yes | — | ⚠ Publish likely fails media-ownership gate (backend) |
 | Fast approval (bulk) | Yes | Yes | Yes — approve selected (inspection policy kept, optional publish), publish selected, skip changed/ineligible | No backend bulk endpoint: runs the single decide/publish calls one by one with a fresh rowVersion each |
 | Order escalations (BE-09) | Yes | Yes | Yes — queue (status/overdue/seller), detail, audit trail, cancel with reason + rowVersion, conflict/forbidden messages | Cancel blocked until backend seeds orders.escalations.cancel / platform.superadmin (BE-14); queue has no total count |
+| Payments & Payouts (finance checks) | Yes | Yes | Yes — order commission, capture readiness, refund evaluation, sub-order settlement checklist | Lookup by order / sub-order ID only (no list API); money-movement endpoints deliberately not exposed |
 | Sellers | Yes | Yes | Yes — list, approve flow, error state | List lacks contact/GMV fields; no unsuspend API |
 | Catalog: categories (+ detail/mappings) | Yes | Yes | — | ⚠ Category units PUT fails for non-empty list (backend) |
 | Catalog: attributes, brands, units, conditions, grades | Yes | Yes | — | No field-level validation from server (client-side zod instead) |
@@ -30,7 +31,7 @@ build environment's network policy. Live verification with a real admin account 
 | My profile | Yes | Yes | — | Photo cannot be removed (backend deletes file on null) |
 | Security: password, sessions, MFA, activity | Yes | Yes | — | ⚠ MFA disable broken (backend) → not offered |
 | Buyers (identity verification) | Yes | Yes | Yes — queue, document verify → approve with fresh rowVersion, reject note, version conflict | Not yet run live (needs an admin with buyers.* and a submitted buyer; migration 039 deployment unconfirmed) |
-| Orders (except escalations), Delivery, Payments, Bids & Deals, Inspectors, Tasks, Price Guidance, Buyer Requests, Green Points, Support, Content, Reports, Integrations, Audit Log | Menu only ("Soon") | No — **no backend API** | — | Blocked on backend |
+| Orders (except escalations), Delivery, Bids & Deals, Inspectors, Tasks, Price Guidance, Buyer Requests, Green Points, Support, Content, Reports, Integrations, Audit Log | Menu only ("Soon") | No — **no backend API** | — | Blocked on backend |
 
 ## Test results (this build)
 

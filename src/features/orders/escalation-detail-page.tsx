@@ -157,7 +157,14 @@ export default function EscalationDetailPage() {
             />
           </SectionCard>
           <SectionCard>
-            <PanelTitle title="Order" />
+            <PanelTitle
+              title="Order"
+              actions={
+                <Link to={`/payments?order=${po.orderId}&subOrder=${so.subOrderId}`} className="text-sm underline underline-offset-4">
+                  Finance checks
+                </Link>
+              }
+            />
             <DetailList
               items={[
                 { label: "Order", value: po.orderNumber },

@@ -59,6 +59,7 @@ const appRoutes: RouteObject[] = [
       { path: ":disputeId", lazy: page(() => import("@/features/disputes/dispute-detail-page")), handle: { crumb: "Dispute" } },
     ],
   },
+  { path: "payments", lazy: page(() => import("@/features/payments/payments-page")), handle: { crumb: "Payments & Payouts" } },
   {
     path: "orders",
     handle: { crumb: "Orders" },
