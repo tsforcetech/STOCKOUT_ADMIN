@@ -111,7 +111,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Growth",
     items: [
       { label: "Content & Banners", to: "/content", icon: FlagBannerIcon, unavailable: true },
-      { label: "Notifications", to: "/notifications", icon: BellIcon, permission: P.NOTIFICATION_TEMPLATES_VIEW },
+      { label: "Notification templates", to: "/notifications", icon: BellIcon, permission: P.NOTIFICATION_TEMPLATES_VIEW },
       { label: "Reports", to: "/reports", icon: FileIcon, unavailable: true },
     ],
   },
