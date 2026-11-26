@@ -14,9 +14,7 @@ import type { Plugin } from "vite";
 export interface FirebaseSwOptions {
   /** Result of Vite's loadEnv(mode, cwd, ""). */
   env: Record<string, string>;
-  /** Public base path ("/" or "/STOCKOUT_BUYER/"). */
-  base: string;
-  /** In-app inbox path relative to the base, e.g. "account/notifications". Push clicks always open this page. */
+  /** In-app inbox path relative to the base, e.g. "account/notifications" (or "#/inbox" for a hash router). Push clicks always open this page. */
   inboxPath: string;
   /** Icon file relative to the base (must exist in public/). */
   icon: string;
@@ -109,10 +107,14 @@ export function firebaseMessagingSw(options: FirebaseSwOptions): Plugin {
   const { config, complete } = firebaseWebConfig(options.env);
   let source: string | null = null;
   const getSource = () => (source ??= renderFirebaseSw(config, firebaseVersion(), options.inboxPath, options.icon));
-  const base = options.base.endsWith("/") ? options.base : `${options.base}/`;
+  // The resolved base also covers `vite build --base=...` on the command line.
+  let base = "/";
 
   return {
     name: "stockout-firebase-messaging-sw",
+    configResolved(config) {
+      base = config.base.endsWith("/") ? config.base : `${config.base}/`;
+    },
     configureServer(server) {
       if (!complete) return;
       server.middlewares.use((req, res, next) => {

@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       // FCM web push worker built from the public VITE_FIREBASE_* config (nothing emitted when it is incomplete).
-      firebaseMessagingSw({ env, base: env.VITE_BASE_PATH || "/", inboxPath: "inbox", icon: "apple-touch-icon.png" }),
+      firebaseMessagingSw({ env, inboxPath: "inbox", icon: "apple-touch-icon.png" }),
     ],
     resolve: {
       alias: { "@": path.resolve(__dirname, "src") },
