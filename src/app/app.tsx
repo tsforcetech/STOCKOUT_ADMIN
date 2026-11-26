@@ -8,6 +8,7 @@ import { AuthProvider } from "@/lib/auth/auth-context";
 import { ThemeProvider, useTheme } from "./providers/theme";
 import { createQueryClient } from "./providers/query-client";
 import { createAppRouter } from "./router/router";
+import { PushBridge } from "@/features/inbox/push-bridge";
 
 function ThemedToaster() {
   const { resolved } = useTheme();
@@ -23,6 +24,7 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <TooltipProvider delayDuration={250}>
             <AuthProvider>
+              <PushBridge openInbox={() => void router.navigate("/inbox")} />
               <RouterProvider router={router} />
             </AuthProvider>
             <ThemedToaster />

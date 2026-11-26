@@ -27,6 +27,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useTheme } from "@/app/providers/theme";
 import { cn } from "@/lib/utils/cn";
 import { useVisibleNav } from "./sidebar";
+import { NotificationBell } from "@/features/inbox/notification-bell";
 
 export interface RouteHandle {
   crumb?:
@@ -237,6 +238,7 @@ export function TopBar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
       </Link>
       <div className="flex-1" />
       <CommandSearch />
+      <NotificationBell />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

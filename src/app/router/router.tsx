@@ -82,6 +82,7 @@ const appRoutes: RouteObject[] = [
   { path: "calendar", lazy: page(() => import("@/features/organizations/calendar-page")), handle: { crumb: "UAE calendar" } },
   { path: "policies", lazy: page(() => import("@/features/policies/policies-page")), handle: { crumb: "Policies" } },
   { path: "notifications", lazy: page(() => import("@/features/notifications/templates-page")), handle: { crumb: "Notification templates" } },
+  { path: "inbox", lazy: page(() => import("@/features/inbox/inbox-page")), handle: { crumb: "Inbox" } },
   {
     path: "team",
     handle: { crumb: "Team & Access" },

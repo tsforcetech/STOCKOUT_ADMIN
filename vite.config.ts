@@ -3,6 +3,7 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
+import { firebaseMessagingSw } from "./firebase-messaging-sw.plugin";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -11,7 +12,12 @@ export default defineConfig(({ mode }) => {
   return {
     // GitHub Pages serves project sites under /<repo>/; VITE_BASE_PATH sets that prefix at build time.
     base: env.VITE_BASE_PATH || "/",
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      // FCM web push worker built from the public VITE_FIREBASE_* config (nothing emitted when it is incomplete).
+      firebaseMessagingSw({ env, base: env.VITE_BASE_PATH || "/", inboxPath: "inbox", icon: "apple-touch-icon.png" }),
+    ],
     resolve: {
       alias: { "@": path.resolve(__dirname, "src") },
     },

@@ -15,6 +15,7 @@ import {
 } from "@/lib/permissions/permissions";
 import { decodeJwtPayload, REFRESH_KEY, tokenStore } from "./token-store";
 import { loadCurrentIdentity } from "./current-identity";
+import { dropPushOnSessionEnd, revokePushBeforeSignOut } from "@/lib/push/web-push";
 
 export type AuthStatus = "initializing" | "authenticated" | "anonymous";
 
@@ -118,6 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const endSessionLocally = React.useCallback(
     (reason: "expired" | "signed-out" | "access-denied") => {
+      // No server call possible any more: at least stop FCM delivery to this browser.
+      void dropPushOnSessionEnd();
       tokenStore.clear();
       queryClient.clear();
       setUser(null);
@@ -287,6 +290,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = tokenStore.getAccessToken();
     const refreshToken = tokenStore.get()?.refreshToken ?? tokenStore.getPersistedRefreshToken();
     const sid = token ? decodeJwtPayload(token)?.sid : undefined;
+    // Push first, while the access token is still valid: revoke this browser installation so the next person on it
+    // gets no pushes for this account. Bounded so a slow notification service never blocks sign-out.
+    await Promise.race([revokePushBeforeSignOut(), new Promise((r) => setTimeout(r, 4000))]);
     let revoked = false;
     if (refreshToken) {
       try {
